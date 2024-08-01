@@ -13,7 +13,8 @@ export const getAllTasks = async (req: Request, res: Response) => {
 
 export const createTask = async (req: Request, res: Response) => {
   try {
-    const [taskId] = await db("tasks").insert(req.body).returning("id");
+    const [result] = await db("tasks").insert(req.body).returning("id");
+    const taskId = result.id; // Extract the id from the result object
     const newTask = await db("tasks").where({ id: taskId }).first();
     res.status(201).json(newTask);
   } catch (error) {

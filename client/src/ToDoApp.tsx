@@ -5,7 +5,9 @@ import { Input } from './components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
 import { Task } from './services/api';
 
-const API_URL = 'http://localhost:5000/api';
+
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const removeEmptyFields = (obj: Record<string, any>) => {
   return Object.fromEntries(
@@ -34,14 +36,14 @@ const TodoApp: React.FC = () => {
   const addTask = async () => {
     if (newTask.title && newTask.title.trim() !== '') {
       try {
-        const taskToSend = removeEmptyFields(newTask);
         const response = await fetch(`${API_URL}/tasks`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(taskToSend),
+          body: JSON.stringify(removeEmptyFields(newTask)),
         });
+
         const data = await response.json();
         setTasks([...tasks, data]);
         setNewTask({});
