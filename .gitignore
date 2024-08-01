@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+package-lock.json
 /.pnp
 .pnp.js
 
@@ -25,7 +26,10 @@ yarn-error.log*
 # Client files
 client/node_modules
 client/.env
+client/.env.local
+client/package-lock.json
 
 # Server files
 server/.env
 server/node_modules
+server/package-lock.json
