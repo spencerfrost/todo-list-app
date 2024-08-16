@@ -1,15 +1,17 @@
 import express from 'express';
 import * as authController from './controllers/authController';
 import * as taskController from './controllers/taskController';
+import { authenticateToken } from './middleware/authMiddleware';
 
 const router = express.Router();
 
-// Task routes
-router.get('/tasks', taskController.getAllTasks);
-router.post('/tasks', taskController.createTask);
-router.get('/tasks/:id', taskController.getTask);
-router.put('/tasks/:id', taskController.updateTask);
-router.delete('/tasks/:id', taskController.deleteTask);
+// Task Routes
+router.get('/tasks', authenticateToken, taskController.getAllTasks);
+router.post('/tasks', authenticateToken, taskController.createTask);
+router.get('/tasks/:id', authenticateToken, taskController.getTask);
+router.put('/tasks/:id', authenticateToken, taskController.updateTask);
+router.delete('/tasks/:id', authenticateToken, taskController.deleteTask);
+router.patch('/tasks/:id/complete', authenticateToken, taskController.completeTask);
 
 // Auth Routes
 router.post('/register', authController.register);
