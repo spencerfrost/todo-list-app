@@ -1,5 +1,6 @@
 import express from 'express';
 import * as authController from './controllers/authController';
+import * as settingsController from './controllers/settingsController';
 import * as taskController from './controllers/taskController';
 import { authenticateToken } from './middleware/authMiddleware';
 
@@ -17,5 +18,9 @@ router.patch('/tasks/:id/complete', authenticateToken, taskController.completeTa
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.post("/check-email", authController.checkEmail);
+
+// Settings Routes
+router.get('/settings', authenticateToken, settingsController.getSettings);
+router.post('/settings', authenticateToken, settingsController.updateSettings);
 
 export default router;

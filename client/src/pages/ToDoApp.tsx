@@ -1,29 +1,14 @@
+import EditTask from "components/EditTask";
+import MainLayout from "components/layouts/MainLayout";
+import TaskListItem from "components/TaskListItem";
+import { PlusCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
-
-import MainLayout from "components/layouts/Main";
-import { Button } from "components/ui/button";
-import { Card, CardContent, CardHeader } from "components/ui/card";
-import { Input } from "components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "components/ui/select";
-import { Task, createTask, deleteTask, getTasks } from "services/api";
-
-const removeEmptyFields = (obj: Record<string, any>) => {
-  return Object.fromEntries(
-    Object.entries(obj).filter(
-      ([_, v]) => v !== null && v !== "" && v !== undefined
-    )
-  );
-};
+import { deleteTask, getTasks, updateTask } from "services/api";
+import { Task } from "services/types";
 
 const TodoApp: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTask, setNewTask] = useState<Partial<Omit<Task, "id">>>({});
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   useEffect(() => {
     fetchTasks();
@@ -38,18 +23,6 @@ const TodoApp: React.FC = () => {
     }
   };
 
-  const addTask = async () => {
-    if (newTask.title && newTask.title.trim() !== "") {
-      try {
-        const createdTask = await createTask(removeEmptyFields(newTask) as Omit<Task, "id">);
-        setTasks([...tasks, createdTask]);
-        setNewTask({});
-      } catch (error) {
-        console.error("Error adding task:", error);
-      }
-    }
-  };
-
   const handleDeleteTask = async (id: number) => {
     try {
       await deleteTask(id);
@@ -59,126 +32,62 @@ const TodoApp: React.FC = () => {
     }
   };
 
-  const handleInputChange = (
-    e:
-      | React.ChangeEvent<HTMLInputElement>
-      | React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setNewTask({ ...newTask, [name]: value });
+  const handleCompleteTask = async (id: number) => {
+    try {
+      const updatedTask = await updateTask(id, { completed: true });
+      setTasks(tasks.map((task) => (task.id === id ? updatedTask : task)));
+    } catch (error) {
+      console.error("Error completing task:", error);
+    }
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+  };
+
+  const handleTaskUpdated = (updatedTask: Task) => {
+    setTasks(
+      tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
+    );
   };
 
   return (
     <MainLayout>
-      <div className="p-4">
-        <Card className="mb-4">
-          <CardHeader>Add New Task</CardHeader>
-          <CardContent>
-            <Input
-              type="text"
-              name="title"
-              value={newTask.title ?? ""}
-              onChange={handleInputChange}
-              placeholder="Task Title"
-              className="mb-2"
-            />
-            <Input
-              type="text"
-              name="description"
-              value={newTask.description ?? ""}
-              onChange={handleInputChange}
-              placeholder="Description"
-              className="mb-2"
-            />
-            <Select
-              value={newTask.priority}
-              onValueChange={(value: "Low" | "Medium" | "High") =>
-                setNewTask({ ...newTask, priority: value })
-              }
+      <div className="flex h-screen">
+        <div className="w-64 bg-gray-100 dark:bg-gray-800 p-4">
+          <h2 className="text-xl font-bold mb-4 dark:text-white">Filters</h2>
+          {/* Add filter options here */}
+        </div>
+        <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
+          <div className="flex justify-between items-center p-2 pl-3 mb-4">
+            <h1 className="text-2xl font-bold dark:text-white">Todo List</h1>
+            <button
+              type="button"
+              title="Add Task"
+              onClick={() => setEditingTask({ id: 0 } as Task)}
+              className="p-0 border-none bg-transparent focus:outline-none"
             >
-              <SelectTrigger className="mb-2">
-                <SelectValue placeholder="Select priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Low">Low</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="High">High</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input
-              type="number"
-              name="estimated_time"
-              value={newTask.estimated_time ?? ""}
-              onChange={handleInputChange}
-              placeholder="Estimated Time (minutes)"
-              className="mb-2"
-            />
-            <Input
-              type="date"
-              name="due_date"
-              value={newTask.due_date ?? ""}
-              onChange={handleInputChange}
-              className="mb-2"
-            />
-            <Input
-              type="text"
-              name="category"
-              value={newTask.category ?? ""}
-              onChange={handleInputChange}
-              placeholder="Category"
-              className="mb-2"
-            />
-            <Input
-              type="text"
-              name="location"
-              value={newTask.location ?? ""}
-              onChange={handleInputChange}
-              placeholder="Location"
-              className="mb-2"
-            />
-            <Select
-              value={newTask.energy_level}
-              onValueChange={(value: "Low" | "Medium" | "High") =>
-                setNewTask({ ...newTask, energy_level: value })
-              }
-            >
-              <SelectTrigger className="mb-2">
-                <SelectValue placeholder="Select energy level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Low">Low</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="High">High</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={addTask}>Add Task</Button>
-          </CardContent>
-        </Card>
-        <div>
-          {tasks.map((task) => (
-            <Card key={task.id} className="mb-2">
-              <CardContent>
-                <h3 className="font-bold">{task.title}</h3>
-                {task.description && <p>{task.description}</p>}
-                {task.priority && <p>Priority: {task.priority}</p>}
-                {task.estimated_time && (
-                  <p>Estimated Time: {task.estimated_time} minutes</p>
-                )}
-                {task.due_date && <p>Due Date: {task.due_date}</p>}
-                {task.category && <p>Category: {task.category}</p>}
-                {task.location && <p>Location: {task.location}</p>}
-                {task.energy_level && <p>Energy Level: {task.energy_level}</p>}
-                <Button
-                  onClick={() => handleDeleteTask(task.id)}
-                  variant="destructive"
-                >
-                  Delete
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+              <PlusCircle size='36px' className="mr-2 h-4 w-4" />
+            </button>
+          </div>
+          <div className="mt-4">
+            {tasks.map((task) => (
+              <TaskListItem
+                key={task.id}
+                task={task}
+                onDelete={handleDeleteTask}
+                onComplete={handleCompleteTask}
+                onEdit={handleEditTask}
+              />
+            ))}
+          </div>
         </div>
       </div>
+      <EditTask
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onTaskUpdated={handleTaskUpdated}
+      />
     </MainLayout>
   );
 };
