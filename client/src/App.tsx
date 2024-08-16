@@ -7,16 +7,25 @@ import {
 } from "react-router-dom";
 
 import { AuthProvider, useAuth } from "context/AuthContext";
+import { ThemeProvider } from "context/ThemeContext";
 
 import Landing from "pages/Landing";
 import LoginRegister from "pages/LoginRegister";
+import Settings from "pages/Settings";
 import TodoApp from "pages/ToDoApp";
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({children}) => {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
 };
 
 const AppRoutes: React.FC = () => {
@@ -37,7 +46,14 @@ const AppRoutes: React.FC = () => {
           )
         }
       />
-      {/* Add more routes as needed */}
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };
@@ -45,9 +61,11 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <ThemeProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </ThemeProvider>
     </AuthProvider>
   );
 };
