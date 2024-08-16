@@ -1,24 +1,30 @@
-import cors from 'cors';
-import express from 'express';
-import config from './config';
-import { errorHandler } from './middleware/errorHandler';
-import routes from './routes';
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
+import path from "path";
+import config from "./config";
+import { errorHandler } from "./middleware/errorHandler";
+import routes from "./routes";
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const app = express();
 
-app.use(cors({
-  origin: 'http://localhost:3000', // or whatever port your React app is running on
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.use(express.json());
 
-app.get('/', (req, res) => {
-  res.send('Welcome to the ToDo List API');
+app.get("/", (req, res) => {
+  res.send("Welcome to the ToDo List API");
 });
 
-app.use('/api', routes);
+app.use("/api", routes);
 
 app.use(errorHandler);
 

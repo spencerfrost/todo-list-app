@@ -1,24 +1,53 @@
-import React from 'react';
+import React from "react";
+import {
+  Navigate,
+  Route,
+  BrowserRouter as Router,
+  Routes,
+} from "react-router-dom";
 
-import Landing from 'components/Landing';
-import MainLayout from 'components/layouts/Main';
-import { AuthProvider, useAuth } from 'context/AuthContext';
-import TodoApp from 'pages/ToDoApp';
+import { AuthProvider, useAuth } from "context/AuthContext";
 
-const AppContent: React.FC = () => {
+import Landing from "pages/Landing";
+import LoginRegister from "pages/LoginRegister";
+import TodoApp from "pages/ToDoApp";
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { isAuthenticated } = useAuth();
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <MainLayout>
-      {isAuthenticated ? <TodoApp /> : <Landing />}
-    </MainLayout>
+    <Routes>
+      <Route path="/login" element={<LoginRegister />} />
+      <Route
+        path="/"
+        element={
+          isAuthenticated ? (
+            <ProtectedRoute>
+              <TodoApp />
+            </ProtectedRoute>
+          ) : (
+            <Landing />
+          )
+        }
+      />
+      {/* Add more routes as needed */}
+    </Routes>
   );
 };
 
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <Router>
+        <AppRoutes />
+      </Router>
     </AuthProvider>
   );
 };

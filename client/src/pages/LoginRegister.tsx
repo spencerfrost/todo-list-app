@@ -1,93 +1,91 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React, { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
-const API_URL = 'http://localhost:5000/api'; // Adjust this to match your API URL
+const API_URL = "http://localhost:5000/api"; // Adjust this to match your API URL
 
 const LoginRegister: React.FC = () => {
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [step, setStep] = useState(1);
   const [isExistingUser, setIsExistingUser] = useState<boolean | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const checkUserExists = async (email: string): Promise<boolean> => {
     try {
       const response = await fetch(`${API_URL}/check-email`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ email }),
       });
       const data = await response.json();
       return data.exists;
     } catch (error) {
-      console.error('Error checking email:', error);
+      console.error("Error checking email:", error);
       throw error;
     }
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     try {
       const exists = await checkUserExists(email);
       setIsExistingUser(exists);
       setStep(2);
     } catch (err) {
-      setError('Error checking email. Please try again.');
+      setError("Error checking email. Please try again.");
     }
   };
 
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     if (isExistingUser) {
       // Handle login
       try {
         const response = await fetch(`${API_URL}/login`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ usernameOrEmail: email, password }),
         });
         const data = await response.json();
-        if (response.ok) {
-          // Call login without arguments
-          login();
+        if (response.ok && data.token) {
+          login(data.token); // Use the login function from AuthContext
         } else {
-          setError(data.error || 'Login failed. Please try again.');
+          setError(data.error || "Login failed. Please try again.");
         }
       } catch (err) {
-        setError('An error occurred. Please try again.');
+        setError("An error occurred. Please try again.");
       }
     } else {
       // Handle registration
       if (password !== confirmPassword) {
-        setError('Passwords do not match');
+        setError("Passwords do not match");
         return;
       }
       try {
         const response = await fetch(`${API_URL}/register`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ username, email, password }),
         });
         const data = await response.json();
-        if (response.ok) {
-          // Call login without arguments after successful registration
-          login();
+        if (response.ok && data.token) {
+          login(data.token);
         } else {
-          setError(data.error || 'Registration failed. Please try again.');
+          setError(data.error || "Registration failed. Please try again.");
         }
       } catch (err) {
-        setError('An error occurred. Please try again.');
+        setError("An error occurred. Please try again.");
       }
     }
   };
@@ -95,21 +93,24 @@ const LoginRegister: React.FC = () => {
   const handleBackToEmail = () => {
     setStep(1);
     setIsExistingUser(null);
-    setPassword('');
-    setConfirmPassword('');
-    setUsername('');
-    setError('');
+    setPassword("");
+    setConfirmPassword("");
+    setUsername("");
+    setError("");
   };
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl">
       <h2 className="text-2xl font-bold mb-6 text-center">
-        {step === 1 ? 'Welcome' : isExistingUser ? 'Login' : 'Register'}
+        {step === 1 ? "Welcome" : isExistingUser ? "Login" : "Register"}
       </h2>
       {error && <p className="text-red-500 mb-4">{error}</p>}
       <form onSubmit={step === 1 ? handleEmailSubmit : handleFinalSubmit}>
         <div className="mb-4">
-          <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">
+          <label
+            htmlFor="email"
+            className="block text-gray-700 text-sm font-bold mb-2"
+          >
             Email
           </label>
           <input
@@ -126,7 +127,10 @@ const LoginRegister: React.FC = () => {
           <>
             {!isExistingUser && (
               <div className="mb-4">
-                <label htmlFor="username" className="block text-gray-700 text-sm font-bold mb-2">
+                <label
+                  htmlFor="username"
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                >
                   Username
                 </label>
                 <input
@@ -140,7 +144,10 @@ const LoginRegister: React.FC = () => {
               </div>
             )}
             <div className="mb-4">
-              <label htmlFor="password" className="block text-gray-700 text-sm font-bold mb-2">
+              <label
+                htmlFor="password"
+                className="block text-gray-700 text-sm font-bold mb-2"
+              >
                 Password
               </label>
               <input
@@ -154,7 +161,10 @@ const LoginRegister: React.FC = () => {
             </div>
             {!isExistingUser && (
               <div className="mb-6">
-                <label htmlFor="confirmPassword" className="block text-gray-700 text-sm font-bold mb-2">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                >
                   Confirm Password
                 </label>
                 <input
@@ -183,7 +193,7 @@ const LoginRegister: React.FC = () => {
             type="submit"
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
           >
-            {step === 1 ? 'Continue' : isExistingUser ? 'Login' : 'Register'}
+            {step === 1 ? "Continue" : isExistingUser ? "Login" : "Register"}
           </button>
         </div>
       </form>
