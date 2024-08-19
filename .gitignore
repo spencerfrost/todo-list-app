@@ -7,7 +7,7 @@ package-lock.json
 .pnp.js
 
 # testing
-/coverage
+client/coverage
 
 # production
 /build
@@ -33,3 +33,5 @@ client/package-lock.json
 server/.env
 server/node_modules
 server/package-lock.json
+
+generate_tree.py

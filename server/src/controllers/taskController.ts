@@ -25,6 +25,8 @@ export const createTask = async (req: RequestWithUserId, res: Response) => {
       return res.status(401).json({ error: "Unauthorized" });
     }
     const taskData = { ...req.body, user_id: req.userId };
+    // Remove id from taskData if it exists
+    delete taskData.id;
     const [result] = await db("tasks").insert(taskData).returning("id");
     const taskId = result.id;
     const newTask = await db("tasks").where({ id: taskId }).first();

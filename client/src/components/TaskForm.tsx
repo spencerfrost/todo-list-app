@@ -1,38 +1,47 @@
 import { Button } from "components/ui/button";
 import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "components/ui/dialog";
 import { Input } from "components/ui/input";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "components/ui/select";
 import React, { useEffect, useState } from "react";
-import { updateTask } from "services/api";
+import { createTask, updateTask } from "services/api";
 import { Task } from "services/types";
 
-interface EditTaskProps {
+interface TaskFormProps {
   task: Task | null;
   onClose: () => void;
   onTaskUpdated: (updatedTask: Task) => void;
 }
 
-const EditTask: React.FC<EditTaskProps> = ({ task, onClose, onTaskUpdated }) => {
+const TaskForm: React.FC<TaskFormProps> = ({
+  task,
+  onClose,
+  onTaskUpdated,
+}) => {
   const [editedTask, setEditedTask] = useState<Task | null>(null);
 
   useEffect(() => {
-    setEditedTask(task);
+    setEditedTask(
+      task ?? ({ id: 0, title: "", description: "", completed: false } as Task)
+    );
   }, [task]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement> | React.ChangeEvent<HTMLSelectElement>
+    e:
+      | React.ChangeEvent<HTMLInputElement>
+      | React.ChangeEvent<HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setEditedTask((prev) => (prev ? { ...prev, [name]: value } : null));
@@ -41,11 +50,18 @@ const EditTask: React.FC<EditTaskProps> = ({ task, onClose, onTaskUpdated }) => 
   const handleSubmit = async () => {
     if (editedTask) {
       try {
-        const updatedTask = await updateTask(editedTask.id, editedTask);
+        let updatedTask: Task;
+        if (editedTask.id === 0) {
+          // Create new task
+          updatedTask = await createTask(editedTask);
+        } else {
+          // Update existing task
+          updatedTask = await updateTask(editedTask.id, editedTask);
+        }
         onTaskUpdated(updatedTask);
         onClose();
       } catch (error) {
-        console.error("Error updating task:", error);
+        console.error("Error saving task:", error);
       }
     }
   };
@@ -54,29 +70,36 @@ const EditTask: React.FC<EditTaskProps> = ({ task, onClose, onTaskUpdated }) => 
 
   return (
     <Dialog open={!!task} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent data-testid="task-form-dialog">
         <DialogHeader>
-          <DialogTitle>Edit Task</DialogTitle>
+          <DialogTitle>
+            {editedTask.id === 0 ? "Create Task" : "Edit Task"}
+          </DialogTitle>
         </DialogHeader>
+        <DialogDescription />
         <div className="space-y-4">
           <Input
             type="text"
             name="title"
-            value={editedTask.title}
+            value={editedTask.title ?? ""}
             onChange={handleInputChange}
             placeholder="Task Title"
+            data-testid="task-title-input"
           />
           <Input
             type="text"
             name="description"
-            value={editedTask.description || ""}
+            value={editedTask.description ?? ""}
             onChange={handleInputChange}
             placeholder="Description"
+            data-testid="task-description-input"
           />
           <Select
             value={editedTask.priority}
             onValueChange={(value: "Low" | "Medium" | "High") =>
-              setEditedTask((prev) => (prev ? { ...prev, priority: value } : null))
+              setEditedTask((prev) =>
+                prev ? { ...prev, priority: value } : null
+              )
             }
           >
             <SelectTrigger>
@@ -91,34 +114,36 @@ const EditTask: React.FC<EditTaskProps> = ({ task, onClose, onTaskUpdated }) => 
           <Input
             type="number"
             name="estimated_time"
-            value={editedTask.estimated_time || ""}
+            value={editedTask.estimated_time ?? ""}
             onChange={handleInputChange}
             placeholder="Estimated Time (minutes)"
           />
           <Input
             type="date"
             name="due_date"
-            value={editedTask.due_date || ""}
+            value={editedTask.due_date ?? ""}
             onChange={handleInputChange}
           />
           <Input
             type="text"
             name="category"
-            value={editedTask.category || ""}
+            value={editedTask.category ?? ""}
             onChange={handleInputChange}
             placeholder="Category"
           />
           <Input
             type="text"
             name="location"
-            value={editedTask.location || ""}
+            value={editedTask.location ?? ""}
             onChange={handleInputChange}
             placeholder="Location"
           />
           <Select
             value={editedTask.energy_level}
             onValueChange={(value: "Low" | "Medium" | "High") =>
-              setEditedTask((prev) => (prev ? { ...prev, energy_level: value } : null))
+              setEditedTask((prev) =>
+                prev ? { ...prev, energy_level: value } : null
+              )
             }
           >
             <SelectTrigger>
@@ -135,11 +160,13 @@ const EditTask: React.FC<EditTaskProps> = ({ task, onClose, onTaskUpdated }) => 
           <Button onClick={onClose} variant="outline">
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Save Changes</Button>
+          <Button onClick={handleSubmit} data-testid="save-task-button">
+            {editedTask.id === 0 ? "Create" : "Save Changes"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 };
 
-export default EditTask;
+export default TaskForm;

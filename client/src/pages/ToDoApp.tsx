@@ -1,5 +1,5 @@
-import EditTask from "components/EditTask";
 import MainLayout from "components/layouts/MainLayout";
+import EditTask from "components/TaskForm";
 import TaskListItem from "components/TaskListItem";
 import { PlusCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
@@ -46,9 +46,16 @@ const TodoApp: React.FC = () => {
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
-    setTasks(
-      tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task))
-    );
+    setTasks((prevTasks) => {
+      const taskIndex = prevTasks.findIndex((task) => task.id === updatedTask.id);
+      if (taskIndex !== -1) {
+        // Update existing task
+        return prevTasks.map((task) => (task.id === updatedTask.id ? updatedTask : task));
+      } else {
+        // Add new task
+        return [...prevTasks, updatedTask];
+      }
+    });
   };
 
   return (
@@ -64,8 +71,10 @@ const TodoApp: React.FC = () => {
             <button
               type="button"
               title="Add Task"
+              name="add-task"
               onClick={() => setEditingTask({ id: 0 } as Task)}
               className="p-0 border-none bg-transparent focus:outline-none"
+              data-testid="add-task-button"
             >
               <PlusCircle size='36px' className="mr-2 h-4 w-4" />
             </button>

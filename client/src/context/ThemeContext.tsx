@@ -3,12 +3,12 @@ import { getSettings, updateSettings } from "services/api";
 import { UserSettings } from "services/types";
 import { useAuth } from "./AuthContext";
 
-interface ThemeContextType extends UserSettings {
+export interface ThemeContextType extends UserSettings {
   setTheme: (settings: Partial<UserSettings>) => Promise<void>;
   toggleDarkMode: () => void;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
