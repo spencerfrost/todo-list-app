@@ -13,7 +13,7 @@ interface TaskListItemProps {
 
 const TaskListItem: React.FC<TaskListItemProps> = ({ task, onDelete, onChecked, onEdit }) => {
   return (
-    <div className="flex items-center justify-between p-2 border-b border-gray-200">
+    <div className="flex items-center justify-between p-2 border-b border-border">
       <div className="flex items-center space-x-2">
         <Checkbox
           checked={task.completed}
@@ -21,8 +21,8 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task, onDelete, onChecked, 
           data-testid={`complete-task-${task.id}`}
         />
         <div>
-          <h3 className="font-semibold">{task.title}</h3>
-          <p className="text-sm text-gray-500">{task.description}</p>
+          <h3 className="font-semibold text-foreground">{task.title}</h3>
+          <p className="text-sm text-muted-foreground">{task.description}</p>
         </div>
       </div>
       <div className="flex space-x-2">
@@ -32,7 +32,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task, onDelete, onChecked, 
           size="sm"
           data-testid={`edit-task-${task.id}`}
         >
-          <Pencil className="h-4 w-4" />
+          <Pencil className="h-4 w-4 text-foreground" />
         </Button>
         <Button 
           onClick={() => onDelete(task.id)} 
@@ -40,11 +40,11 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task, onDelete, onChecked, 
           size="sm"
           data-testid={`delete-task-${task.id}`}
         >
-          <Trash2 className="h-4 w-4" />
+          <Trash2 className="h-4 w-4 text-foreground" />
         </Button>
       </div>
     </div>
   );
-};
+}
 
 export default TaskListItem;

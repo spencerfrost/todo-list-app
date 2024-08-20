@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { useAuth } from "../context/AuthContext";
 
 const API_URL = "http://localhost:5000/api"; // Adjust this to match your API URL
@@ -100,25 +102,25 @@ const LoginRegister: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl">
-      <h2 className="text-2xl font-bold mb-6 text-center">
+    <div className="max-w-md mx-auto mt-10 p-6 bg-card rounded-lg shadow-xl">
+      <h2 className="text-2xl font-bold mb-6 text-center text-foreground">
         {step === 1 ? "Welcome" : isExistingUser ? "Login" : "Register"}
       </h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+      {error && <p className="text-destructive mb-4">{error}</p>}
       <form onSubmit={step === 1 ? handleEmailSubmit : handleFinalSubmit}>
         <div className="mb-4">
           <label
             htmlFor="email"
-            className="block text-gray-700 text-sm font-bold mb-2"
+            className="block text-foreground text-sm font-bold mb-2"
           >
             Email
           </label>
-          <input
+          <Input
             type="email"
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            className="py-2 px-3"
             required
             disabled={step !== 1}
           />
@@ -129,16 +131,16 @@ const LoginRegister: React.FC = () => {
               <div className="mb-4">
                 <label
                   htmlFor="username"
-                  className="block text-gray-700 text-sm font-bold mb-2"
+                  className="block text-foreground text-sm font-bold mb-2"
                 >
                   Username
                 </label>
-                <input
+                <Input
                   type="text"
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className="py-2 px-3"
                   required
                 />
               </div>
@@ -146,16 +148,16 @@ const LoginRegister: React.FC = () => {
             <div className="mb-4">
               <label
                 htmlFor="password"
-                className="block text-gray-700 text-sm font-bold mb-2"
+                className="block text-foreground text-sm font-bold mb-2"
               >
                 Password
               </label>
-              <input
+              <Input
                 type="password"
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                className="py-2 px-3"
                 required
               />
             </div>
@@ -163,16 +165,16 @@ const LoginRegister: React.FC = () => {
               <div className="mb-6">
                 <label
                   htmlFor="confirmPassword"
-                  className="block text-gray-700 text-sm font-bold mb-2"
+                  className="block text-foreground text-sm font-bold mb-2"
                 >
                   Confirm Password
                 </label>
-                <input
+                <Input
                   type="password"
                   id="confirmPassword"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className="py-2 px-3"
                   required
                 />
               </div>
@@ -180,21 +182,17 @@ const LoginRegister: React.FC = () => {
           </>
         )}
         <div className="flex justify-between items-center">
-          {step === 2 && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              disabled={step === 1}
               onClick={handleBackToEmail}
-              className="text-blue-500 hover:text-blue-700 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
               Back
-            </button>
-          )}
-          <button
-            type="submit"
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          >
+            </Button>
+          <Button type="submit" className="font-bold">
             {step === 1 ? "Continue" : isExistingUser ? "Login" : "Register"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -5,19 +5,24 @@ import * as React from "react"
 import { cn } from "lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  [
+    // Base styles
+    "inline-flex items-center justify-center text-sm font-medium",
+    "rounded-md ring-offset-background transition-colors",
+    // Focus
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+    // Disabled
+    "disabled:pointer-events-none disabled:opacity-50"
+  ].join(" "),
   {
     variants: {
       variant: {
-        default: "bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600",
-        destructive:
-          "bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700",
-        outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700",
-        secondary:
-          "bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600",
-        ghost: "hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-800 dark:hover:text-gray-100",
-        link: "text-blue-600 underline-offset-4 hover:underline dark:text-blue-400 dark:hover:text-blue-300",
+        default: "bg-primary text-primary-50 hover:bg-primary-600",
+        destructive: "bg-destructive text-destructive-50 hover:bg-destructive-700",
+        outline: "border border-primary text-primary-50 bg-background hover:bg-primary",
+        secondary: "bg-secondary text-secondary-50 hover:bg-secondary-700",
+        ghost: "hover:bg-primary-200/10",
+        link: "text-primary-500 underline-offset-4 hover:underline",
       },
       size: {
         default: "h-10 px-4 py-2",

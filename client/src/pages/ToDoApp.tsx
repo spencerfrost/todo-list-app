@@ -62,13 +62,13 @@ const TodoApp: React.FC = () => {
   return (
     <MainLayout>
       <div className="flex h-screen">
-        <div className="w-64 bg-gray-100 dark:bg-gray-800 p-4">
-          <h2 className="text-xl font-bold mb-4 dark:text-white">Filters</h2>
+        <div className="w-64 bg-card/60 p-4">
+          <h2 className="text-xl font-bold mb-4 text-foreground">Filters</h2>
           {/* Add filter options here */}
         </div>
-        <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
+        <div className="flex-1 overflow-y-auto bg-background">
           <div className="flex justify-between items-center p-2 pl-3 mb-4">
-            <h1 className="text-2xl font-bold dark:text-white">Todo List</h1>
+            <h1 className="text-2xl font-bold text-primary">Todo List</h1>
             <Button
               title="Add Task"
               variant="ghost"
@@ -76,7 +76,7 @@ const TodoApp: React.FC = () => {
               onClick={() => setEditingTask({ id: 0 } as Task)}
               data-testid="add-task-button"
             >
-              <PlusCircle className="h-5 w-5 text-grey"  />
+              <PlusCircle className="h-5 w-5 text-primary" />
             </Button>
           </div>
           <div className="mt-4">

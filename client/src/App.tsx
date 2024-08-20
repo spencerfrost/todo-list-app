@@ -9,6 +9,7 @@ import {
 import { AuthProvider, useAuth } from "context/AuthContext";
 import { ThemeProvider } from "context/ThemeContext";
 
+import ComponentShowcase from "pages/ComponentShowcase";
 import Landing from "pages/Landing";
 import LoginRegister from "pages/LoginRegister";
 import Settings from "pages/Settings";
@@ -50,6 +51,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/login" element={<LoginRegister />} />
       <Route path="/" element={homePageElement} />
       <Route path="/settings" element={settingsPageElement} />
+      <Route path="/components" element={<ComponentShowcase />} />
     </Routes>
   );
 };
