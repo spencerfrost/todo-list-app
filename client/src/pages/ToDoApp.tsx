@@ -1,6 +1,7 @@
 import MainLayout from "components/layouts/MainLayout";
 import EditTask from "components/TaskForm";
 import TaskListItem from "components/TaskListItem";
+import { Button } from "components/ui/button";
 import { PlusCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { deleteTask, getTasks, updateTask } from "services/api";
@@ -32,9 +33,9 @@ const TodoApp: React.FC = () => {
     }
   };
 
-  const handleCompleteTask = async (id: number) => {
+  const handleCheckedTask = async (id: number, checked: boolean) => {
     try {
-      const updatedTask = await updateTask(id, { completed: true });
+      const updatedTask = await updateTask(id, { completed: checked });
       setTasks(tasks.map((task) => (task.id === id ? updatedTask : task)));
     } catch (error) {
       console.error("Error completing task:", error);
@@ -68,16 +69,15 @@ const TodoApp: React.FC = () => {
         <div className="flex-1 overflow-y-auto bg-white dark:bg-gray-900">
           <div className="flex justify-between items-center p-2 pl-3 mb-4">
             <h1 className="text-2xl font-bold dark:text-white">Todo List</h1>
-            <button
-              type="button"
+            <Button
               title="Add Task"
-              name="add-task"
+              variant="ghost"
+              size="icon"
               onClick={() => setEditingTask({ id: 0 } as Task)}
-              className="p-0 border-none bg-transparent focus:outline-none"
               data-testid="add-task-button"
             >
-              <PlusCircle size='36px' className="mr-2 h-4 w-4" />
-            </button>
+              <PlusCircle className="h-5 w-5 text-grey"  />
+            </Button>
           </div>
           <div className="mt-4">
             {tasks.map((task) => (
@@ -85,7 +85,7 @@ const TodoApp: React.FC = () => {
                 key={task.id}
                 task={task}
                 onDelete={handleDeleteTask}
-                onComplete={handleCompleteTask}
+                onChecked={handleCheckedTask}
                 onEdit={handleEditTask}
               />
             ))}

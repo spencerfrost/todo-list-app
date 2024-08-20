@@ -7,17 +7,17 @@ import { Task } from "services/types";
 interface TaskListItemProps {
   task: Task;
   onDelete: (id: number) => void;
-  onComplete: (id: number) => void;
+  onChecked: (id: number, checked: boolean) => void;
   onEdit: (task: Task) => void;
 }
 
-const TaskListItem: React.FC<TaskListItemProps> = ({ task, onDelete, onComplete, onEdit }) => {
+const TaskListItem: React.FC<TaskListItemProps> = ({ task, onDelete, onChecked, onEdit }) => {
   return (
     <div className="flex items-center justify-between p-2 border-b border-gray-200">
       <div className="flex items-center space-x-2">
         <Checkbox
           checked={task.completed}
-          onCheckedChange={() => onComplete(task.id)}
+          onCheckedChange={checked => onChecked(task.id, checked as boolean)}
           data-testid={`complete-task-${task.id}`}
         />
         <div>
