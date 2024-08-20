@@ -30,30 +30,26 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({children}) => 
 
 const AppRoutes: React.FC = () => {
   const { isAuthenticated } = useAuth();
+  const homePageElement = isAuthenticated ? (
+    <ProtectedRoute>
+      <TodoApp />
+    </ProtectedRoute>
+  ) : (
+    <Landing />
+  );
+  const settingsPageElement = isAuthenticated ? (
+    <ProtectedRoute>
+      <Settings />
+    </ProtectedRoute>
+  ) : (
+    <Navigate to="/login" replace />
+  );
 
   return (
     <Routes>
       <Route path="/login" element={<LoginRegister />} />
-      <Route
-        path="/"
-        element={
-          isAuthenticated ? (
-            <ProtectedRoute>
-              <TodoApp />
-            </ProtectedRoute>
-          ) : (
-            <Landing />
-          )
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/" element={homePageElement} />
+      <Route path="/settings" element={settingsPageElement} />
     </Routes>
   );
 };
