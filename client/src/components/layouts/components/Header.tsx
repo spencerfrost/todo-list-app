@@ -28,7 +28,7 @@ const Header: React.FC<HeaderProps> = ({ showAuthButton = true }) => {
     navigate("/login");
   };
   return (
-    <header className="bg-card h-16 flex items-center justify-between px-4">
+    <header className="bg-card h-12 flex items-center justify-between px-4">
       <Link to="/" className="text-foreground text-xl font-bold">
         TaskMaster
       </Link>
