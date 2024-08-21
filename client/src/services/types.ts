@@ -24,4 +24,5 @@ export interface Task {
   location?: string;
   energy_level?: "Low" | "Medium" | "High";
   completed: boolean;
+  created_at: string;
 }

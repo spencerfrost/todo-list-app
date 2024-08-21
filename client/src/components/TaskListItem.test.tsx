@@ -6,6 +6,7 @@ const mockTask = {
   title: 'Test Task',
   description: 'Test Description',
   completed: false,
+  created_at: '2021-10-01T00:00:00Z',
 };
 
 test('renders TaskListItem correctly', () => {

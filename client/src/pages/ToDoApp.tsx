@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from "react";
 
-import { deleteTask, getTasks, updateSettings } from "services/api";
-import { Task } from "services/types";
-
 import MainLayout from "components/layouts/MainLayout";
+import TaskControlsSidebar from "components/TaskControlsSidebar";
 import TaskForm from "components/TaskForm";
 import TaskList from "components/TaskList";
 import TodoHeader from "components/ToDoHeader";
-import TodoSidebar from "components/ToDoSidebar";
 import { useToast } from "components/ui/use-toast";
 import { useTheme } from "context/ThemeContext";
+import { deleteTask, getTasks, updateSettings } from "services/api";
+import { Task } from "services/types";
 
 const TodoApp: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [sortBy, setSortBy] = useState<keyof Task>("due_date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const { show_completed, setTheme } = useTheme();
   const { toast } = useToast();
 
@@ -62,18 +64,19 @@ const TodoApp: React.FC = () => {
     setTasks((prevTasks) => {
       const taskIndex = prevTasks.findIndex((t) => t.id === updatedTask.id);
       if (taskIndex !== -1) {
-        // Update existing task
         const newTasks = [...prevTasks];
         newTasks[taskIndex] = updatedTask;
         return newTasks;
       } else {
-        // Add new task
         return [...prevTasks, updatedTask];
       }
     });
     toast({
       title: "Success",
-      description: updatedTask.id === 0 ? "Task created successfully." : "Task updated successfully.",
+      description:
+        updatedTask.id === 0
+          ? "Task created successfully."
+          : "Task updated successfully.",
     });
   };
 
@@ -84,7 +87,9 @@ const TodoApp: React.FC = () => {
       setTheme({ show_completed: newShowCompleted });
       toast({
         title: "Settings Updated",
-        description: `${newShowCompleted ? 'Showing' : 'Hiding'} completed tasks.`,
+        description: `${
+          newShowCompleted ? "Showing" : "Hiding"
+        } completed tasks.`,
       });
     } catch (error) {
       console.error("Error updating show completed setting:", error);
@@ -96,14 +101,61 @@ const TodoApp: React.FC = () => {
     }
   };
 
-  const filteredTasks = show_completed
-    ? tasks
-    : tasks.filter((task) => !task.completed);
+  const handleSortChange = (newSortBy: keyof Task) => {
+    setSortBy(newSortBy);
+  };
+
+  const handleSortOrderChange = () => {
+    setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"));
+  };
+
+  const handlePriorityFilterChange = (priority: string) => {
+    setPriorityFilter((prevFilter) =>
+      prevFilter.includes(priority)
+        ? prevFilter.filter((p) => p !== priority)
+        : [...prevFilter, priority]
+    );
+  };
+
+  const filteredAndSortedTasks = tasks
+    .filter(
+      (task) =>
+        (show_completed || !task.completed) &&
+        (priorityFilter.length === 0 ||
+          priorityFilter.includes(task.priority || ""))
+    )
+    .sort((a, b) => {
+      const aValue = a[sortBy];
+      const bValue = b[sortBy];
+
+      if (aValue == null && bValue == null) return 0;
+      if (aValue == null) return sortOrder === "asc" ? 1 : -1;
+      if (bValue == null) return sortOrder === "asc" ? -1 : 1;
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortOrder === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
 
   return (
     <MainLayout>
       <div className="flex h-screen">
-        <TodoSidebar />
+        <TaskControlsSidebar
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          showCompleted={show_completed}
+          priorityFilter={priorityFilter}
+          onSortChange={handleSortChange}
+          onSortOrderChange={handleSortOrderChange}
+          onShowCompletedChange={toggleShowCompleted}
+          onPriorityFilterChange={handlePriorityFilterChange}
+        />
         <div className="flex-1 overflow-y-auto bg-background">
           <TodoHeader
             onAddTask={() => setEditingTask({ id: 0 } as Task)}
@@ -111,7 +163,7 @@ const TodoApp: React.FC = () => {
             showCompleted={show_completed}
           />
           <TaskList
-            tasks={filteredTasks}
+            tasks={filteredAndSortedTasks}
             onEditTask={handleEditTask}
             onUpdateTask={handleTaskUpdated}
           />
