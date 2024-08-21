@@ -1,50 +1,148 @@
 import { Button } from "components/ui/button";
 import { Checkbox } from "components/ui/checkbox";
-import { Pencil, Trash2 } from "lucide-react";
-import React from "react";
+import { useToast } from "components/ui/use-toast";
+import { Pencil } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { updateTask } from "services/api";
 import { Task } from "services/types";
 
 interface TaskListItemProps {
   task: Task;
-  onDelete: (id: number) => void;
-  onChecked: (id: number, checked: boolean) => void;
   onEdit: (task: Task) => void;
+  onUpdate: (task: Task) => void;
 }
 
-const TaskListItem: React.FC<TaskListItemProps> = ({ task, onDelete, onChecked, onEdit }) => {
+const TaskListItem: React.FC<TaskListItemProps> = ({ task, onEdit, onUpdate }) => {
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (editingTitle && titleRef.current) {
+      titleRef.current.focus();
+    }
+    if (editingDescription && descriptionRef.current) {
+      descriptionRef.current.focus();
+    }
+  }, [editingTitle, editingDescription]);
+
+  const handleInlineUpdate = async (field: 'title' | 'description', value: string) => {
+    try {
+      const updatedTask = await updateTask(task.id, { [field]: value });
+      onUpdate(updatedTask);
+      toast({
+        title: "Success",
+        description: `Task ${field} updated successfully.`,
+      });
+    } catch (error) {
+      console.error(`Error updating task ${field}:`, error);
+      toast({
+        title: "Error",
+        description: `Failed to update task ${field}. Please try again.`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTitleChange = () => {
+    if (titleRef.current) {
+      const newTitle = titleRef.current.textContent || "";
+      handleInlineUpdate('title', newTitle);
+    }
+    setEditingTitle(false);
+  };
+
+  const handleDescriptionChange = () => {
+    if (descriptionRef.current) {
+      const newDescription = descriptionRef.current.textContent || "";
+      handleInlineUpdate('description', newDescription);
+    }
+    setEditingDescription(false);
+  };
+
+  const handleCheckedChange = async (checked: boolean) => {
+    try {
+      const updatedTask = await updateTask(task.id, { completed: checked });
+      onUpdate(updatedTask);
+      toast({
+        title: "Success",
+        description: `Task marked as ${checked ? 'completed' : 'incomplete'}.`,
+      });
+    } catch (error) {
+      console.error("Error updating task completion status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task status. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent,
+    field: "title" | "description"
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (field === "title") {
+        handleTitleChange();
+      } else {
+        handleDescriptionChange();
+      }
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between p-2 border-b border-border">
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          checked={task.completed}
-          onCheckedChange={checked => onChecked(task.id, checked as boolean)}
-          data-testid={`complete-task-${task.id}`}
-        />
-        <div>
-          <h3 className="font-semibold text-foreground">{task.title}</h3>
-          <p className="text-sm text-muted-foreground">{task.description}</p>
+    <li className="group p-2 border-b border-border transition-colors duration-200 hover:bg-accent/10">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            checked={task.completed}
+            onCheckedChange={handleCheckedChange}
+            data-testid={`complete-task-${task.id}`}
+          />
+          <div>
+            <h3
+              ref={titleRef}
+              contentEditable={editingTitle}
+              onBlur={handleTitleChange}
+              onKeyDown={(e) => handleKeyDown(e, "title")}
+              onClick={() => setEditingTitle(true)}
+              className="font-semibold text-foreground outline-none"
+              suppressContentEditableWarning
+            >
+              {task.title}
+            </h3>
+            <p
+              ref={descriptionRef}
+              contentEditable={editingDescription}
+              onBlur={handleDescriptionChange}
+              onKeyDown={(e) => handleKeyDown(e, "description")}
+              onClick={() => setEditingDescription(true)}
+              className="text-sm text-muted-foreground outline-none"
+              suppressContentEditableWarning
+            >
+              {task.description}
+            </p>
+          </div>
+        </div>
+        <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <Button 
+            onClick={() => onEdit(task)} 
+            variant="ghost" 
+            size="icon"
+            className="h-8 w-8 text-primary"
+            data-testid={`edit-task-${task.id}`}
+          >
+            <Pencil className="h-4 w-4" />
+            <span className="sr-only">Edit task</span>
+          </Button>
         </div>
       </div>
-      <div className="flex space-x-2">
-        <Button 
-          onClick={() => onEdit(task)} 
-          variant="ghost" 
-          size="sm"
-          data-testid={`edit-task-${task.id}`}
-        >
-          <Pencil className="h-4 w-4 text-foreground" />
-        </Button>
-        <Button 
-          onClick={() => onDelete(task.id)} 
-          variant="ghost" 
-          size="sm"
-          data-testid={`delete-task-${task.id}`}
-        >
-          <Trash2 className="h-4 w-4 text-foreground" />
-        </Button>
-      </div>
-    </div>
+    </li>
   );
-}
+};
 
 export default TaskListItem;

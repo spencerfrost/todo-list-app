@@ -2,11 +2,11 @@ import { Ellipsis, PlusCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
 import { useTheme } from "context/ThemeContext";
-import { deleteTask, getTasks, updateSettings, updateTask } from "services/api";
+import { deleteTask, getTasks, updateSettings } from "services/api";
 import { Task } from "services/types";
 
 import MainLayout from "components/layouts/MainLayout";
-import EditTask from "components/TaskForm";
+import TaskForm from "components/TaskForm";
 import TaskListItem from "components/TaskListItem";
 
 import { Button } from "components/ui/button";
@@ -46,6 +46,11 @@ const TodoApp: React.FC = () => {
     try {
       await deleteTask(id);
       setTasks(tasks.filter((task) => task.id !== id));
+      setEditingTask(null); // Close the edit form after deletion
+      toast({
+        title: "Success",
+        description: "Task deleted successfully.",
+      });
     } catch (error) {
       console.error("Error deleting task:", error);
       toast({
@@ -56,33 +61,14 @@ const TodoApp: React.FC = () => {
     }
   };
 
-  const handleCheckedTask = async (id: number, checked: boolean) => {
-    try {
-      const updatedTask = await updateTask(id, { completed: checked });
-      setTasks(tasks.map((task) => (task.id === id ? updatedTask : task)));
-    } catch (error) {
-      console.error("Error completing task:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update task. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
-    setTasks((prevTasks) => {
-      const taskIndex = prevTasks.findIndex((task) => task.id === updatedTask.id);
-      if (taskIndex !== -1) {
-        return prevTasks.map((task) => task.id === updatedTask.id ? updatedTask : task);
-      } else {
-        return [...prevTasks, updatedTask];
-      }
-    });
+    setTasks((prevTasks) => 
+      prevTasks.map((task) => task.id === updatedTask.id ? updatedTask : task)
+    );
   };
 
   const toggleShowCompleted = async () => {
@@ -145,23 +131,28 @@ const TodoApp: React.FC = () => {
           <div className="mt-4">
             {filteredTasks.map((task) => (
               <TaskListItem
-                key={task.id}
-                task={task}
-                onDelete={handleDeleteTask}
-                onChecked={handleCheckedTask}
-                onEdit={handleEditTask}
-              />
-            ))}
-          </div>
+              key={task.id}
+              task={task}
+              onEdit={handleEditTask}
+              onUpdate={handleTaskUpdated}
+            />
+          ))}
         </div>
       </div>
-      <EditTask
+    </div>
+    {editingTask && (
+      <TaskForm
         task={editingTask}
         onClose={() => setEditingTask(null)}
-        onTaskUpdated={handleTaskUpdated}
+        onTaskUpdated={(updatedTask) => {
+          handleTaskUpdated(updatedTask);
+          setEditingTask(null);
+        }}
+        onDelete={handleDeleteTask}
       />
-    </MainLayout>
-  );
+    )}
+  </MainLayout>
+);
 };
 
 export default TodoApp;

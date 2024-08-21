@@ -12,8 +12,7 @@ test('renders TaskListItem correctly', () => {
   render(
     <TaskListItem
       task={mockTask}
-      onDelete={() => {}}
-      onChecked={() => {}}
+      onUpdate={() => {}}
       onEdit={() => {}}
     />
   );
@@ -22,19 +21,18 @@ test('renders TaskListItem correctly', () => {
   expect(screen.getByText('Test Description')).toBeInTheDocument();
 });
 
-test('calls onChecked when checkbox is clicked', () => {
-  const mockonChecked = jest.fn();
+test('calls onUpdate when checkbox is clicked', () => {
+  const mockonUpdate = jest.fn();
   render(
     <TaskListItem
       task={mockTask}
-      onDelete={() => {}}
-      onChecked={mockonChecked}
+      onUpdate={mockonUpdate}
       onEdit={() => {}}
     />
   );
   
   fireEvent.click(screen.getByRole('checkbox'));
-  expect(mockonChecked).toHaveBeenCalledWith(1);
+  expect(mockonUpdate).toHaveBeenCalledWith(1);
 });
 
 // Add more tests for onDelete and onEdit functionality

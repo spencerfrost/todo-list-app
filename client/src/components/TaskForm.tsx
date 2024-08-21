@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "components/ui/select";
+import { Trash2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { createTask, updateTask } from "services/api";
 import { Task } from "services/types";
@@ -23,12 +24,14 @@ interface TaskFormProps {
   task: Task | null;
   onClose: () => void;
   onTaskUpdated: (updatedTask: Task) => void;
+  onDelete: (id: number) => void;
 }
 
 const TaskForm: React.FC<TaskFormProps> = ({
   task,
   onClose,
   onTaskUpdated,
+  onDelete,
 }) => {
   const [editedTask, setEditedTask] = useState<Task | null>(null);
 
@@ -156,10 +159,18 @@ const TaskForm: React.FC<TaskFormProps> = ({
             </SelectContent>
           </Select>
         </div>
-        <DialogFooter>
-          <Button onClick={onClose} variant="outline">
-            Cancel
-          </Button>
+        <DialogFooter className="flex sm:justify-between items-center">
+          {editedTask.id !== 0 && (
+            <Button
+              onClick={() => onDelete(editedTask.id)}
+              variant="ghost"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              data-testid="delete-task-button"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
           <Button onClick={handleSubmit} data-testid="save-task-button">
             {editedTask.id === 0 ? "Create" : "Save Changes"}
           </Button>
