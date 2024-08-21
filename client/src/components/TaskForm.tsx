@@ -34,10 +34,11 @@ const TaskForm: React.FC<TaskFormProps> = ({
   onDelete,
 }) => {
   const [editedTask, setEditedTask] = useState<Task | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   useEffect(() => {
     setEditedTask(
-      task ?? ({ id: 0, title: "", description: "", completed: false } as Task)
+      task ?? { id: 0, title: "", description: "", completed: false } as Task
     );
   }, [task]);
 
@@ -48,10 +49,18 @@ const TaskForm: React.FC<TaskFormProps> = ({
   ) => {
     const { name, value } = e.target;
     setEditedTask((prev) => (prev ? { ...prev, [name]: value } : null));
+    if (name === "title") {
+      setTitleError(null);
+    }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (editedTask) {
+      if (!editedTask.title || !editedTask.title.trim()) {
+        setTitleError("Title is required");
+        return;
+      }
       try {
         let updatedTask: Task;
         if (editedTask.id === 0) {
@@ -69,6 +78,13 @@ const TaskForm: React.FC<TaskFormProps> = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
   if (!editedTask) return null;
 
   return (
@@ -80,20 +96,28 @@ const TaskForm: React.FC<TaskFormProps> = ({
           </DialogTitle>
         </DialogHeader>
         <DialogDescription />
-        <div className="space-y-4">
-          <Input
-            type="text"
-            name="title"
-            value={editedTask.title ?? ""}
-            onChange={handleInputChange}
-            placeholder="Task Title"
-            data-testid="task-title-input"
-          />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Input
+              type="text"
+              name="title"
+              value={editedTask.title ?? ""}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder="Task Title"
+              data-testid="task-title-input"
+              className={titleError ? "border-red-500" : ""}
+            />
+            {titleError && (
+              <p className="text-red-500 text-sm mt-1">{titleError}</p>
+            )}
+          </div>
           <Input
             type="text"
             name="description"
             value={editedTask.description ?? ""}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             placeholder="Description"
             data-testid="task-description-input"
           />
@@ -119,6 +143,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             name="estimated_time"
             value={editedTask.estimated_time ?? ""}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             placeholder="Estimated Time (minutes)"
           />
           <Input
@@ -126,12 +151,14 @@ const TaskForm: React.FC<TaskFormProps> = ({
             name="due_date"
             value={editedTask.due_date ?? ""}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
           />
           <Input
             type="text"
             name="category"
             value={editedTask.category ?? ""}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             placeholder="Category"
           />
           <Input
@@ -139,6 +166,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
             name="location"
             value={editedTask.location ?? ""}
             onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
             placeholder="Location"
           />
           <Select
@@ -158,7 +186,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
               <SelectItem value="High">High</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+        </form>
         <DialogFooter className="flex sm:justify-between items-center">
           {editedTask.id !== 0 && (
             <Button

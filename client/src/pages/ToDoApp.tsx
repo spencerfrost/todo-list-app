@@ -1,22 +1,15 @@
-import { Ellipsis, PlusCircle } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
-import { useTheme } from "context/ThemeContext";
 import { deleteTask, getTasks, updateSettings } from "services/api";
 import { Task } from "services/types";
 
 import MainLayout from "components/layouts/MainLayout";
 import TaskForm from "components/TaskForm";
-import TaskListItem from "components/TaskListItem";
-
-import { Button } from "components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "components/ui/dropdown-menu";
+import TaskList from "components/TaskList";
+import TodoHeader from "components/ToDoHeader";
+import TodoSidebar from "components/ToDoSidebar";
 import { useToast } from "components/ui/use-toast";
+import { useTheme } from "context/ThemeContext";
 
 const TodoApp: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -46,7 +39,7 @@ const TodoApp: React.FC = () => {
     try {
       await deleteTask(id);
       setTasks(tasks.filter((task) => task.id !== id));
-      setEditingTask(null); // Close the edit form after deletion
+      setEditingTask(null);
       toast({
         title: "Success",
         description: "Task deleted successfully.",
@@ -66,9 +59,22 @@ const TodoApp: React.FC = () => {
   };
 
   const handleTaskUpdated = (updatedTask: Task) => {
-    setTasks((prevTasks) => 
-      prevTasks.map((task) => task.id === updatedTask.id ? updatedTask : task)
-    );
+    setTasks((prevTasks) => {
+      const taskIndex = prevTasks.findIndex((t) => t.id === updatedTask.id);
+      if (taskIndex !== -1) {
+        // Update existing task
+        const newTasks = [...prevTasks];
+        newTasks[taskIndex] = updatedTask;
+        return newTasks;
+      } else {
+        // Add new task
+        return [...prevTasks, updatedTask];
+      }
+    });
+    toast({
+      title: "Success",
+      description: updatedTask.id === 0 ? "Task created successfully." : "Task updated successfully.",
+    });
   };
 
   const toggleShowCompleted = async () => {
@@ -97,62 +103,30 @@ const TodoApp: React.FC = () => {
   return (
     <MainLayout>
       <div className="flex h-screen">
-        <div className="w-64 bg-card/60 p-4">
-          <h2 className="text-xl font-bold mb-4 text-foreground">Filters</h2>
-          {/* Add filter options here */}
-        </div>
+        <TodoSidebar />
         <div className="flex-1 overflow-y-auto bg-background">
-          <div className="flex justify-between items-center p-2 pl-3 mb-4">
-            <h1 className="text-2xl font-bold text-primary">Todo List</h1>
-            <div>
-              <Button
-                title="Add Task"
-                variant="ghost"
-                size="icon"
-                onClick={() => setEditingTask({ id: 0 } as Task)}
-                data-testid="add-task-button"
-              >
-                <PlusCircle className="h-5 w-5 text-primary" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger tabIndex={-1}>
-                  <Button variant="ghost" size="icon">
-                    <Ellipsis className="h-5 w-5 text-primary" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={toggleShowCompleted}>
-                    {show_completed ? 'Hide' : 'Show'} Completed Tasks
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-          <div className="mt-4">
-            {filteredTasks.map((task) => (
-              <TaskListItem
-              key={task.id}
-              task={task}
-              onEdit={handleEditTask}
-              onUpdate={handleTaskUpdated}
-            />
-          ))}
+          <TodoHeader
+            onAddTask={() => setEditingTask({ id: 0 } as Task)}
+            onToggleShowCompleted={toggleShowCompleted}
+            showCompleted={show_completed}
+          />
+          <TaskList
+            tasks={filteredTasks}
+            onEditTask={handleEditTask}
+            onUpdateTask={handleTaskUpdated}
+          />
         </div>
       </div>
-    </div>
-    {editingTask && (
-      <TaskForm
-        task={editingTask}
-        onClose={() => setEditingTask(null)}
-        onTaskUpdated={(updatedTask) => {
-          handleTaskUpdated(updatedTask);
-          setEditingTask(null);
-        }}
-        onDelete={handleDeleteTask}
-      />
-    )}
-  </MainLayout>
-);
+      {editingTask && (
+        <TaskForm
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+          onTaskUpdated={handleTaskUpdated}
+          onDelete={handleDeleteTask}
+        />
+      )}
+    </MainLayout>
+  );
 };
 
 export default TodoApp;
