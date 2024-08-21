@@ -16,6 +16,7 @@ const TodoApp: React.FC = () => {
   const [sortBy, setSortBy] = useState<keyof Task>("due_date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
+  const [sortCompletedToBottom, setSortCompletedToBottom] = useState(false);
   const { show_completed, setTheme } = useTheme();
   const { toast } = useToast();
 
@@ -117,6 +118,10 @@ const TodoApp: React.FC = () => {
     );
   };
 
+  const handleSortCompletedToBottomChange = () => {
+    setSortCompletedToBottom((prev) => !prev);
+  };
+
   const filteredAndSortedTasks = tasks
     .filter(
       (task) =>
@@ -125,6 +130,11 @@ const TodoApp: React.FC = () => {
           priorityFilter.includes(task.priority || ""))
     )
     .sort((a, b) => {
+      if (sortCompletedToBottom) {
+        if (a.completed && !b.completed) return 1;
+        if (!a.completed && b.completed) return -1;
+      }
+
       const aValue = a[sortBy];
       const bValue = b[sortBy];
 
@@ -151,10 +161,12 @@ const TodoApp: React.FC = () => {
           sortOrder={sortOrder}
           showCompleted={show_completed}
           priorityFilter={priorityFilter}
+          sortCompletedToBottom={sortCompletedToBottom}
           onSortChange={handleSortChange}
           onSortOrderChange={handleSortOrderChange}
           onShowCompletedChange={toggleShowCompleted}
           onPriorityFilterChange={handlePriorityFilterChange}
+          onSortCompletedToBottomChange={handleSortCompletedToBottomChange}
         />
         <div className="flex-1 overflow-y-auto bg-background">
           <TodoHeader

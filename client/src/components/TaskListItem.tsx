@@ -95,7 +95,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task, onEdit, onUpdate }) =
   };
 
   return (
-    <li className="group p-2 border-b border-border transition-colors duration-200 hover:bg-accent/10">
+    <li className={`group p-2 border-b border-border transition-colors duration-200 hover:bg-accent/10 ${task.completed ? 'opacity-60' : ''}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -110,7 +110,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task, onEdit, onUpdate }) =
               onBlur={handleTitleChange}
               onKeyDown={(e) => handleKeyDown(e, "title")}
               onClick={() => setEditingTitle(true)}
-              className="font-semibold text-foreground outline-none"
+              className={`font-semibold text-foreground outline-none ${task.completed ? 'line-through' : ''}`}
               suppressContentEditableWarning
             >
               {task.title}

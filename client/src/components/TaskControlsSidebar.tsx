@@ -11,10 +11,12 @@ interface TaskControlsSidebarProps {
   sortOrder: 'asc' | 'desc';
   showCompleted: boolean;
   priorityFilter: string[];
+  sortCompletedToBottom: boolean;
   onSortChange: (sortBy: keyof Task) => void;
   onSortOrderChange: () => void;
   onShowCompletedChange: () => void;
   onPriorityFilterChange: (priority: string) => void;
+  onSortCompletedToBottomChange: () => void;
 }
 
 const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
@@ -22,10 +24,12 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
   sortOrder,
   showCompleted,
   priorityFilter,
+  sortCompletedToBottom,
   onSortChange,
   onSortOrderChange,
   onShowCompletedChange,
   onPriorityFilterChange,
+  onSortCompletedToBottomChange,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
@@ -83,7 +87,7 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
             </div>
 
             <div className="mb-6">
-              <h3 className="text-sm font-medium mb-2">Filters</h3>
+              <h3 className="text-sm font-medium mb-2">Display Options</h3>
               <div className="space-y-2">
                 <div className="flex items-center">
                   <Checkbox
@@ -93,6 +97,16 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
                   />
                   <Label htmlFor="show-completed" className="ml-2">
                     Show Completed Tasks
+                  </Label>
+                </div>
+                <div className="flex items-center">
+                  <Checkbox
+                    id="sort-completed-bottom"
+                    checked={sortCompletedToBottom}
+                    onCheckedChange={onSortCompletedToBottomChange}
+                  />
+                  <Label htmlFor="sort-completed-bottom" className="ml-2">
+                    Sort Completed to Bottom
                   </Label>
                 </div>
               </div>
