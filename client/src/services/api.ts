@@ -44,34 +44,11 @@ export const deleteTask = async (id: number): Promise<void> => {
 
 // Settings-related API calls
 export const getSettings = async (): Promise<UserSettings> => {
-  try {
-    const response = await axiosInstance.get("/settings");
-    if (response.status === 204) {
-      console.warn("Received 204 No Content from /settings endpoint");
-      // Return default settings
-      return {
-        primary_color: '#3b82f6',
-        secondary_color: '#10b981',
-        dark_mode: false,
-        default_sorting: 'dueDate',
-        sorting_direction: 'asc',
-        tasks_per_page: 10,
-        show_completed: false,
-        email_notifications: true,
-        push_notifications: false,
-        notification_frequency: 'daily',
-        time_zone: 'UTC',
-        language: 'en',
-      };
-    }
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching settings:", error);
-    throw error;
-  }
+  const response = await axiosInstance.get("/settings");
+  return response.data;
 };
 
 export const updateSettings = async (settings: Partial<UserSettings>): Promise<UserSettings> => {
-  const response = await axiosInstance.post("/settings", settings);
+  const response = await axiosInstance.put("/settings", settings);
   return response.data;
 };

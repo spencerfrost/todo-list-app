@@ -3,9 +3,9 @@ import { getSettings, updateSettings } from "services/api";
 import { UserSettings } from "services/types";
 import { useAuth } from "./AuthContext";
 
-export interface ThemeContextType extends UserSettings {
+export interface ThemeContextType {
+  settings: UserSettings;
   setTheme: (settings: Partial<UserSettings>) => Promise<void>;
-  toggleDarkMode: () => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -22,18 +22,15 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [settings, setSettings] = useState<UserSettings>({
-    primary_color: "#3b82f6",
-    secondary_color: "#10b981",
-    dark_mode: false,
-    default_sorting: "dueDate",
-    sorting_direction: "asc",
-    tasks_per_page: 10,
     show_completed: false,
     email_notifications: true,
     push_notifications: false,
     notification_frequency: "daily",
     time_zone: "UTC",
     language: "en",
+    sort_by: "due_date",
+    sort_order: "asc",
+    sort_completed_to_bottom: false,
   });
   const { token } = useAuth();
 
@@ -47,28 +44,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       } catch (error) {
         console.error("Error fetching settings:", error);
-        // Keep the default settings
+        // If there's an error, we'll keep the default settings
       }
     };
 
     fetchSettings();
   }, [token]);
-
-  useEffect(() => {
-    document.documentElement.style.setProperty(
-      "--primary",
-      settings.primary_color
-    );
-    document.documentElement.style.setProperty(
-      "--secondary",
-      settings.secondary_color
-    );
-    if (settings.dark_mode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [settings]);
 
   const setTheme = async (newSettings: Partial<UserSettings>) => {
     try {
@@ -79,12 +60,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const toggleDarkMode = () => {
-    setTheme({ dark_mode: !settings.dark_mode });
-  };
-
   return (
-    <ThemeContext.Provider value={{ ...settings, setTheme, toggleDarkMode }}>
+    <ThemeContext.Provider value={{ settings, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

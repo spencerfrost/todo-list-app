@@ -21,6 +21,6 @@ router.post("/check-email", authController.checkEmail);
 
 // Settings Routes
 router.get('/settings', authenticateToken, settingsController.getSettings);
-router.post('/settings', authenticateToken, settingsController.updateSettings);
+router.put('/settings', authenticateToken, settingsController.updateSettings);
 
 export default router;

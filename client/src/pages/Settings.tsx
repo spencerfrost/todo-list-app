@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
 
 import { Button } from "components/ui/button";
-import { Input } from "components/ui/input";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "components/ui/select";
 import { Switch } from "components/ui/switch";
 
@@ -15,19 +14,17 @@ import MainLayout from "components/layouts/MainLayout";
 import { getSettings, updateSettings } from "services/api";
 import { UserSettings } from "services/types";
 
+// Default settings using the UserSettings type partially
 const defaultSettings: UserSettings = {
-  primary_color: "#3b82f6",
-  secondary_color: "#10b981",
-  dark_mode: false,
-  default_sorting: "dueDate",
-  sorting_direction: "asc",
-  tasks_per_page: 10,
   show_completed: false,
   email_notifications: true,
   push_notifications: false,
   notification_frequency: "daily",
   time_zone: "UTC",
   language: "en",
+  sort_by: "due_date",
+  sort_order: "asc",
+  sort_completed_to_bottom: false,
 };
 
 const Settings: React.FC = () => {
@@ -85,91 +82,6 @@ const Settings: React.FC = () => {
     <MainLayout>
         <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Settings</h1>
-        <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Theme Preferences</h2>
-            <div className="flex items-center mb-4">
-            <label className="mr-4">Primary Color:</label>
-            <Input
-                type="color"
-                value={settings.primary_color}
-                onChange={(e) => handleChange("primary_color", e.target.value)}
-            />
-            </div>
-            <div className="flex items-center mb-4">
-            <label className="mr-4">Secondary Color:</label>
-            <Input
-                type="color"
-                value={settings.secondary_color}
-                onChange={(e) => handleChange("secondary_color", e.target.value)}
-            />
-            </div>
-            <div className="flex items-center">
-            <label className="mr-4">Dark Mode:</label>
-            <Switch
-                checked={settings.dark_mode}
-                onCheckedChange={(checked) => handleChange("dark_mode", checked)}
-            />
-            </div>
-        </section>
-        <section className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">
-            Task Display Preferences
-            </h2>
-            <div className="flex items-center mb-4">
-            <label className="mr-4">Default Sorting:</label>
-            <Select
-                value={settings.default_sorting}
-                onValueChange={(value) => handleChange("default_sorting", value)}
-            >
-                <SelectTrigger>
-                <SelectValue placeholder="Select sorting" />
-                </SelectTrigger>
-                <SelectContent>
-                <SelectItem value="dueDate">Due Date</SelectItem>
-                <SelectItem value="priority">Priority</SelectItem>
-                <SelectItem value="title">Title</SelectItem>
-                </SelectContent>
-            </Select>
-            </div>
-            <div className="flex items-center mb-4">
-            <label className="mr-4">Sorting Direction:</label>
-            <Select
-                value={settings.sorting_direction}
-                onValueChange={(value: "asc" | "desc") =>
-                handleChange("sorting_direction", value)
-                }
-            >
-                <SelectTrigger>
-                <SelectValue placeholder="Select direction" />
-                </SelectTrigger>
-                <SelectContent>
-                <SelectItem value="asc">Ascending</SelectItem>
-                <SelectItem value="desc">Descending</SelectItem>
-                </SelectContent>
-            </Select>
-            </div>
-            <div className="flex items-center mb-4">
-            <label className="mr-4">Tasks per Page:</label>
-            <Input
-                type="number"
-                value={settings.tasks_per_page}
-                onChange={(e) =>
-                handleChange("tasks_per_page", parseInt(e.target.value))
-                }
-                min={5}
-                max={50}
-            />
-            </div>
-            <div className="flex items-center">
-            <label className="mr-4">Show Completed Tasks:</label>
-            <Switch
-                checked={settings.show_completed}
-                onCheckedChange={(checked) =>
-                handleChange("show_completed", checked)
-                }
-            />
-            </div>
-        </section>
         <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Notification Settings</h2>
             <div className="flex items-center mb-4">

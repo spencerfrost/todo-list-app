@@ -3,6 +3,7 @@ import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { AuthContext, AuthContextType } from "../context/AuthContext";
 import { ThemeContext, ThemeContextType } from "../context/ThemeContext";
+import { UserSettings } from "../services/types";
 
 // Mock AuthContext
 export const mockAuthContext: AuthContextType = {
@@ -15,20 +16,18 @@ export const mockAuthContext: AuthContextType = {
 
 // Mock ThemeContext
 export const mockThemeContext: ThemeContextType = {
-  primary_color: '#000000',
-  secondary_color: '#ffffff',
-  dark_mode: false,
-  default_sorting: 'dueDate',
-  sorting_direction: 'asc',
-  tasks_per_page: 10,
-  show_completed: false,
-  email_notifications: true,
-  push_notifications: false,
-  notification_frequency: 'daily',
-  time_zone: 'UTC',
-  language: 'en',
+  settings: {
+    show_completed: false,
+    email_notifications: true,
+    push_notifications: false,
+    notification_frequency: 'daily',
+    time_zone: 'UTC',
+    language: 'en',
+    sort_by: 'due_date',
+    sort_order: 'asc',
+    sort_completed_to_bottom: false,
+  } as UserSettings,
   setTheme: jest.fn(),
-  toggleDarkMode: jest.fn(),
 };
 
 export const MockProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -52,3 +51,4 @@ export * from '@testing-library/react';
 
 // Override the render method
 export { customRender as render };
+

@@ -3,53 +3,46 @@ import { Checkbox } from 'components/ui/checkbox';
 import { Label } from 'components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select';
 import { ArrowDownAZ, ArrowUpAZ, Calendar, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { Task } from 'services/types';
+import React from 'react';
+import { Task, UserSettings } from 'services/types';
 
 interface TaskControlsSidebarProps {
-  sortBy: keyof Task;
-  sortOrder: 'asc' | 'desc';
-  showCompleted: boolean;
+  settings: UserSettings;
   priorityFilter: string[];
-  sortCompletedToBottom: boolean;
-  onSortChange: (sortBy: keyof Task) => void;
-  onSortOrderChange: () => void;
-  onShowCompletedChange: () => void;
-  onPriorityFilterChange: (priority: string) => void;
-  onSortCompletedToBottomChange: () => void;
+  onUpdateSettings: (settings: Partial<UserSettings>) => void;
+  onUpdatePriorityFilter: (priorityFilter: string[]) => void;
 }
 
 const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
-  sortBy,
-  sortOrder,
-  showCompleted,
+  settings,
   priorityFilter,
-  sortCompletedToBottom,
-  onSortChange,
-  onSortOrderChange,
-  onShowCompletedChange,
-  onPriorityFilterChange,
-  onSortCompletedToBottomChange,
+  onUpdateSettings,
+  onUpdatePriorityFilter
 }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isSmallScreen, setIsSmallScreen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
 
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsSmallScreen(window.innerWidth < 768); // Adjust breakpoint as needed
-    };
+  const handleSortByChange = (value: string) => {
+    onUpdateSettings({ sort_by: value as keyof Task });
+  };
 
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
+  const handleSortOrderChange = () => {
+    onUpdateSettings({ sort_order: settings.sort_order === 'asc' ? 'desc' : 'asc' });
+  };
 
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
+  const handleShowCompletedChange = () => {
+    onUpdateSettings({ show_completed: !settings.show_completed });
+  };
 
-  useEffect(() => {
-    if (isSmallScreen) {
-      setIsCollapsed(true);
-    }
-  }, [isSmallScreen]);
+  const handlePriorityFilterChange = (priority: string) => {
+    const newPriorityFilter = priorityFilter.includes(priority)
+      ? priorityFilter.filter(p => p !== priority)
+      : [...priorityFilter, priority];
+    onUpdatePriorityFilter(newPriorityFilter);
+  };
+
+  const handleSortCompletedToBottomChange = () => {
+    onUpdateSettings({ sort_completed_to_bottom: !settings.sort_completed_to_bottom });
+  };
 
   const toggleSidebar = () => {
     setIsCollapsed(!isCollapsed);
@@ -64,7 +57,7 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
             
             <div className="mb-6">
               <h3 className="text-sm font-medium mb-2">Sort By</h3>
-              <Select onValueChange={(value) => onSortChange(value as keyof Task)} value={sortBy}>
+              <Select onValueChange={(value) => handleSortByChange(value as keyof Task)} value={settings.sort_by}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select sorting criteria" />
                 </SelectTrigger>
@@ -79,10 +72,10 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
                 variant="outline"
                 size="sm"
                 className="mt-2"
-                onClick={onSortOrderChange}
+                onClick={handleSortOrderChange}
               >
-                {sortOrder === 'asc' ? <ArrowUpAZ className="mr-2 h-4 w-4" /> : <ArrowDownAZ className="mr-2 h-4 w-4" />}
-                {sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                {settings.sort_order === 'asc' ? <ArrowUpAZ className="mr-2 h-4 w-4" /> : <ArrowDownAZ className="mr-2 h-4 w-4" />}
+                {settings.sort_order === 'asc' ? 'Ascending' : 'Descending'}
               </Button>
             </div>
 
@@ -92,8 +85,8 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
                 <div className="flex items-center">
                   <Checkbox
                     id="show-completed"
-                    checked={showCompleted}
-                    onCheckedChange={onShowCompletedChange}
+                    checked={settings.show_completed}
+                    onCheckedChange={handleShowCompletedChange}
                   />
                   <Label htmlFor="show-completed" className="ml-2">
                     Show Completed Tasks
@@ -102,8 +95,8 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
                 <div className="flex items-center">
                   <Checkbox
                     id="sort-completed-bottom"
-                    checked={sortCompletedToBottom}
-                    onCheckedChange={onSortCompletedToBottomChange}
+                    checked={settings.sort_completed_to_bottom}
+                    onCheckedChange={handleSortCompletedToBottomChange}
                   />
                   <Label htmlFor="sort-completed-bottom" className="ml-2">
                     Sort Completed to Bottom
@@ -120,7 +113,7 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
                     <Checkbox
                       id={`priority-${priority.toLowerCase()}`}
                       checked={priorityFilter.includes(priority)}
-                      onCheckedChange={() => onPriorityFilterChange(priority)}
+                      onCheckedChange={() => handlePriorityFilterChange(priority)}
                     />
                     <Label htmlFor={`priority-${priority.toLowerCase()}`} className="ml-2">
                       {priority}
@@ -146,6 +139,8 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
           ${isCollapsed ? 'rounded-r' : ''}`
         }
         onClick={toggleSidebar}
+        title='Toggle Sidebar'
+        role='button'
       >
         {isCollapsed ? (
           <>
