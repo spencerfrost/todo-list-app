@@ -1,11 +1,15 @@
 import React, { useState } from "react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+
+import MainLayout from "components/layouts/MainLayout";
+import { Button } from "components/ui/button";
+import { Input } from "components/ui/input";
+import { useAuth } from "context/AuthContext";
 
 const API_URL = "http://localhost:5000/api"; // Adjust this to match your API URL
 
 const LoginRegister: React.FC = () => {
+  const navigate = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +63,8 @@ const LoginRegister: React.FC = () => {
         });
         const data = await response.json();
         if (response.ok && data.token) {
-          login(data.token); // Use the login function from AuthContext
+          login(data.token);
+          navigate("/");
         } else {
           setError(data.error || "Login failed. Please try again.");
         }
@@ -102,100 +107,102 @@ const LoginRegister: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-card rounded-lg shadow-xl">
-      <h2 className="text-2xl font-bold mb-6 text-center text-foreground">
-        {step === 1 ? "Welcome" : isExistingUser ? "Login" : "Register"}
-      </h2>
-      {error && <p className="text-destructive mb-4">{error}</p>}
-      <form onSubmit={step === 1 ? handleEmailSubmit : handleFinalSubmit}>
-        <div className="mb-4">
-          <label
-            htmlFor="email"
-            className="block text-foreground text-sm font-bold mb-2"
-          >
-            Email
-          </label>
-          <Input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="py-2 px-3"
-            required
-            disabled={step !== 1}
-          />
-        </div>
-        {step === 2 && (
-          <>
-            {!isExistingUser && (
+    <MainLayout>
+      <div className="max-w-md mx-auto mt-10 p-6 bg-card rounded-lg shadow-xl">
+        <h2 className="text-2xl font-bold mb-6 text-center text-foreground">
+          {step === 1 ? "Welcome" : isExistingUser ? "Login" : "Register"}
+        </h2>
+        {error && <p className="text-destructive mb-4">{error}</p>}
+        <form onSubmit={step === 1 ? handleEmailSubmit : handleFinalSubmit}>
+          <div className="mb-4">
+            <label
+              htmlFor="email"
+              className="block text-foreground text-sm font-bold mb-2"
+            >
+              Email
+            </label>
+            <Input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="py-2 px-3"
+              required
+              disabled={step !== 1}
+            />
+          </div>
+          {step === 2 && (
+            <>
+              {!isExistingUser && (
+                <div className="mb-4">
+                  <label
+                    htmlFor="username"
+                    className="block text-foreground text-sm font-bold mb-2"
+                  >
+                    Username
+                  </label>
+                  <Input
+                    type="text"
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="py-2 px-3"
+                    required
+                  />
+                </div>
+              )}
               <div className="mb-4">
                 <label
-                  htmlFor="username"
+                  htmlFor="password"
                   className="block text-foreground text-sm font-bold mb-2"
                 >
-                  Username
-                </label>
-                <Input
-                  type="text"
-                  id="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="py-2 px-3"
-                  required
-                />
-              </div>
-            )}
-            <div className="mb-4">
-              <label
-                htmlFor="password"
-                className="block text-foreground text-sm font-bold mb-2"
-              >
-                Password
-              </label>
-              <Input
-                type="password"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="py-2 px-3"
-                required
-              />
-            </div>
-            {!isExistingUser && (
-              <div className="mb-6">
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-foreground text-sm font-bold mb-2"
-                >
-                  Confirm Password
+                  Password
                 </label>
                 <Input
                   type="password"
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="py-2 px-3"
                   required
                 />
               </div>
-            )}
-          </>
-        )}
-        <div className="flex justify-between items-center">
-            <Button
-              type="button"
-              variant="ghost"
-              disabled={step === 1}
-              onClick={handleBackToEmail}
-            >
-              Back
+              {!isExistingUser && (
+                <div className="mb-6">
+                  <label
+                    htmlFor="confirmPassword"
+                    className="block text-foreground text-sm font-bold mb-2"
+                  >
+                    Confirm Password
+                  </label>
+                  <Input
+                    type="password"
+                    id="confirmPassword"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="py-2 px-3"
+                    required
+                  />
+                </div>
+              )}
+            </>
+          )}
+          <div className="flex justify-between items-center">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={step === 1}
+                onClick={handleBackToEmail}
+              >
+                Back
+              </Button>
+            <Button type="submit" className="font-bold">
+              {step === 1 ? "Continue" : isExistingUser ? "Login" : "Register"}
             </Button>
-          <Button type="submit" className="font-bold">
-            {step === 1 ? "Continue" : isExistingUser ? "Login" : "Register"}
-          </Button>
-        </div>
-      </form>
-    </div>
+          </div>
+        </form>
+      </div>
+    </MainLayout>
   );
 };
 

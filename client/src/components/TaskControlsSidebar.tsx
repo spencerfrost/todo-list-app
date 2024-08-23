@@ -1,9 +1,11 @@
+import { ArrowDownAZ, ArrowUpAZ, Calendar, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import React from 'react';
+
 import { Button } from 'components/ui/button';
 import { Checkbox } from 'components/ui/checkbox';
 import { Label } from 'components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select';
-import { ArrowDownAZ, ArrowUpAZ, Calendar, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
-import React from 'react';
+
 import { Task, UserSettings } from 'services/types';
 
 interface TaskControlsSidebarProps {
@@ -58,14 +60,14 @@ const TaskControlsSidebar: React.FC<TaskControlsSidebarProps> = ({
             <div className="mb-6">
               <h3 className="text-sm font-medium mb-2">Sort By</h3>
               <Select onValueChange={(value) => handleSortByChange(value as keyof Task)} value={settings.sort_by}>
-                <SelectTrigger>
+                <SelectTrigger data-testid="sort-by-trigger">
                   <SelectValue placeholder="Select sorting criteria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="title">Title</SelectItem>
-                  <SelectItem value="due_date">Due Date</SelectItem>
-                  <SelectItem value="priority">Priority</SelectItem>
-                  <SelectItem value="created_at">Created Date</SelectItem>
+                  <SelectItem value="title" data-testid="title-sort">Title</SelectItem>
+                  <SelectItem value="due_date" data-testid="due-date-sort">Due Date</SelectItem>
+                  <SelectItem value="priority" data-testid="priority-sort">Priority</SelectItem>
+                  <SelectItem value="created_at" data-testid="created-at-sort">Created At</SelectItem>
                 </SelectContent>
               </Select>
               <Button

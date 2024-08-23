@@ -1,9 +1,11 @@
+import * as testingLibraryDom from '@testing-library/react';
 import { render, RenderOptions } from '@testing-library/react';
+
+import { AuthContext, AuthContextType } from "context/AuthContext";
+import { ThemeContext, ThemeContextType } from "context/ThemeContext";
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { AuthContext, AuthContextType } from "../context/AuthContext";
-import { ThemeContext, ThemeContextType } from "../context/ThemeContext";
-import { UserSettings } from "../services/types";
+import { UserSettings } from "services/types";
 
 // Mock AuthContext
 export const mockAuthContext: AuthContextType = {
@@ -48,7 +50,8 @@ const customRender = (
 
 // Re-export everything from React Testing Library
 export * from '@testing-library/react';
+export const { fireEvent, waitFor, screen } = testingLibraryDom;
 
 // Override the render method
-export { customRender as render };
+  export { customRender as render };
 

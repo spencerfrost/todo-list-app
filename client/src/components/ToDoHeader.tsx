@@ -1,6 +1,6 @@
-import React from "react";
 import { Ellipsis, PlusCircle } from "lucide-react";
-import { Button } from "components/ui/button";
+import React from "react";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,24 +22,18 @@ const TodoHeader: React.FC<TodoHeaderProps> = ({
   return (
     <div className="flex justify-between items-center p-2 pl-3 mb-4">
       <h1 className="text-2xl font-bold text-primary">Todo List</h1>
-      <div>
-        <Button
-          title="Add Task"
-          variant="ghost"
-          size="icon"
+      <div className="flex items-center space-x-3 pr-1">
+        <PlusCircle 
+          className="h-5 w-5 text-primary cursor-pointer hover:text-primary-600"
           onClick={onAddTask}
           data-testid="add-task-button"
-        >
-          <PlusCircle className="h-5 w-5 text-primary" />
-        </Button>
+        />
         <DropdownMenu>
-          <DropdownMenuTrigger tabIndex={-1}>
-            <Button variant="ghost" size="icon">
-              <Ellipsis className="h-5 w-5 text-primary" />
-            </Button>
+          <DropdownMenuTrigger tabIndex={-1} data-testid="todo-header-options">
+              <Ellipsis className="h-5 w-5 text-primary cursor-pointer hover:text-primary-600" />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onClick={onToggleShowCompleted}>
+            <DropdownMenuItem onClick={onToggleShowCompleted} data-testid="toggle-show-completed">
               {showCompleted ? 'Hide' : 'Show'} Completed Tasks
             </DropdownMenuItem>
           </DropdownMenuContent>
