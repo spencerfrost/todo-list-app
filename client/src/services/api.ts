@@ -1,6 +1,7 @@
 import axios from "axios";
 import { Task, UserSettings } from "services/types";
 
+console.log(process.env.REACT_APP_API_URL);
 const API_URL = process.env.REACT_APP_API_URL ?? '/api';
 
 const axiosInstance = axios.create({
