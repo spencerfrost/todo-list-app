@@ -1,11 +1,25 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
 import type { Knex } from "knex";
 import path from 'path';
 
+// Use an absolute path for the root directory
+const rootDir = path.resolve(__dirname, '..');
+
 // Load the appropriate .env file based on the NODE_ENV
-const envFile = process.env.NODE_ENV ? `.env.${process.env.NODE_ENV}` : '.env';
-console.log('Loading environment variables from:', envFile);
-dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+const nodeEnv = process.env.NODE_ENV || 'development';
+const envFile = `.env.${nodeEnv}`;
+const envPath = path.join(rootDir, envFile);
+
+console.log('Attempting to load environment variables from:', envPath);
+
+if (fs.existsSync(envPath)) {
+  console.log(`${envFile} file found. Loading...`);
+  dotenv.config({ path: envPath });
+} else {
+  console.warn(`${envFile} not found. Falling back to .env`);
+  dotenv.config({ path: path.join(rootDir, '.env') });
+}
 
 const migrationDirectory = path.join(__dirname, 'migrations');
 console.log('Migration directory:', migrationDirectory);
