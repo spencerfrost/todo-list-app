@@ -1,13 +1,13 @@
 import axios from "axios";
 import { Task, UserSettings } from "services/types";
 
-// Check if we're in production mode and set the domain to https://taskmaster.mrspinn.ca/api if we are
-
-const DOMAIN = process.env.NODE_ENV === 'production' ? 'https://taskmaster.mrspinn.ca' : '';
 const API_URL = process.env.REACT_APP_API_URL ?? '/api';
 
+console.log('Environment:', process.env.NODE_ENV);
+console.log('API URL:', process.env.REACT_APP_API_URL);
+
 const axiosInstance = axios.create({
-  baseURL: `${DOMAIN}${API_URL}`,
+  baseURL: API_URL,
 });
 
 axiosInstance.interceptors.request.use(
