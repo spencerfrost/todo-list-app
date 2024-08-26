@@ -6,6 +6,15 @@ import path from 'path';
 const envFile = process.env.NODE_ENV ? `.env.${process.env.NODE_ENV}` : '.env';
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
+const migrationDirectory = path.join(__dirname, 'migrations');
+console.log('Migration directory:', migrationDirectory);
+console.log('Current working directory:', process.cwd());
+console.log('Environment variables:', {
+  DB_HOST: process.env.DB_HOST,
+  DB_NAME: process.env.DB_NAME,
+  DB_USER: process.env.DB_USER,
+});
+
 interface ConnectionConfig {
   host: string | undefined;
   database: string | undefined;
@@ -24,8 +33,8 @@ const defaultConfig: Knex.Config = {
   client: "postgresql",
   connection: defaultConnection,
   migrations: {
-    directory: "./migrations"
-  }
+    directory: migrationDirectory
+   }
 };
 
 const config: { [key: string]: Knex.Config } = {
