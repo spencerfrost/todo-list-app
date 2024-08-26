@@ -10,7 +10,7 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 const isDev = process.env.NODE_ENV !== 'production';
 
 const corsOptions = {
-  origin: isDev ? 'http://localhost:3000' : 'https://mcskinmerger.mrspinn.ca',
+  origin: isDev ? 'http://localhost:3000' : 'https://taskmaster.mrspinn.ca',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }
