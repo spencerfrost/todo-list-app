@@ -58,13 +58,13 @@ export const login = async (req: Request, res: Response) => {
 
 export const checkEmail = async (req: Request, res: Response) => {
   try {
+    console.log('checkEmail function called');
+    console.log('Request body:', req.body);
     const { email } = req.body;
     const user = await db("users").where({ email }).first();
     res.json({ exists: !!user });
   } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while checking the email" });
+    console.error('Error in checkEmail:', error);
+    res.status(500).json({ error: 'An error occurred while checking the email' });
   }
 };
