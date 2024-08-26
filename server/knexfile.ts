@@ -9,6 +9,7 @@ const envFile = `.env.${nodeEnv}`;
 const envPath = path.join(rootDir, envFile);
 
 if (fs.existsSync(envPath)) {
+  console.log(`Using ${envFile} for environment variables`);
   dotenv.config({ path: envPath });
 } else {
   console.warn(`${envFile} not found. Falling back to .env`);
