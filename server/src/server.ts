@@ -7,6 +7,13 @@ import { errorHandler } from "./middleware/errorHandler";
 import routes from "./routes";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
+const isDev = process.env.NODE_ENV !== 'production';
+
+const corsOptions = {
+  origin: isDev ? 'http://localhost:3000' : 'https://mcskinmerger.mrspinn.ca',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}
 
 const app = express();
 
@@ -14,21 +21,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',') 
   : ['http://localhost:3000'];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-
+app.use(cors(corsOptions));
 app.use(express.json());
 
 app.get("/", (req, res) => {
