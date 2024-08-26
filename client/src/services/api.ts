@@ -1,10 +1,7 @@
 import axios from "axios";
 import { Task, UserSettings } from "services/types";
 
-const API_URL = process.env.REACT_APP_API_URL ?? '/api';
-
-console.log('Environment:', process.env.NODE_ENV);
-console.log('API URL:', process.env.REACT_APP_API_URL);
+const API_URL = process.env.NODE_ENV === "production" ? "https://taskmaster.mrspinn.ca/api" : "http://localhost:5000/api";
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
