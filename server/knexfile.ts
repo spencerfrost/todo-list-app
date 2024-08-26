@@ -4,7 +4,7 @@ import type { Knex } from "knex";
 import path from 'path';
 
 // Use an absolute path for the root directory
-const rootDir = path.resolve(__dirname, '..');
+const rootDir = path.resolve(__dirname, '.');
 
 // Load the appropriate .env file based on the NODE_ENV
 const nodeEnv = process.env.NODE_ENV || 'development';
