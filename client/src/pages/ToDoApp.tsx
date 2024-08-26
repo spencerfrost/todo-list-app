@@ -1,17 +1,15 @@
+import React, { useCallback, useEffect, useState } from "react";
+
 import MainLayout from "components/layouts/MainLayout";
 import TaskControlsSidebar from "components/TaskControlsSidebar";
 import TaskForm from "components/TaskForm";
 import TaskList from "components/TaskList";
 import TodoHeader from "components/ToDoHeader";
 import { useToast } from "components/ui/use-toast";
-import React, { useEffect, useState } from "react";
-import {
-  deleteTask,
-  getSettings,
-  getTasks,
-  updateSettings,
-} from "services/api";
+
+import { deleteTask, getSettings, getTasks, updateSettings } from "services/api";
 import { Task, UserSettings } from "services/types";
+
 
 const TodoApp: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -20,12 +18,7 @@ const TodoApp: React.FC = () => {
   const [priorityFilter, setPriorityFilter] = useState<string[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchTasks();
-    fetchSettings();
-  }, []);
-
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       const fetchedTasks = await getTasks();
       setTasks(fetchedTasks);
@@ -37,9 +30,9 @@ const TodoApp: React.FC = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const fetchedSettings = await getSettings();
       setSettings(fetchedSettings);
@@ -51,7 +44,12 @@ const TodoApp: React.FC = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchTasks();
+    fetchSettings();
+  }, [fetchTasks, fetchSettings]);
 
   const handleUpdateSettings = async (newSettings: Partial<UserSettings>) => {
     try {
