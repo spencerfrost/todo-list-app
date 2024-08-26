@@ -4,6 +4,7 @@ import path from 'path';
 
 // Load the appropriate .env file based on the NODE_ENV
 const envFile = process.env.NODE_ENV ? `.env.${process.env.NODE_ENV}` : '.env';
+console.log('Loading environment variables from:', envFile);
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 const migrationDirectory = path.join(__dirname, 'migrations');
