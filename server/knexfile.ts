@@ -1,21 +1,21 @@
 import dotenv from 'dotenv';
-import fs from 'fs';
 import type { Knex } from "knex";
 import path from 'path';
 
-const rootDir = path.resolve(__dirname, '.');
-const nodeEnv = process.env.NODE_ENV || 'development';
-const envFile = `.env.${nodeEnv}`;
-const envPath = path.join(rootDir, envFile);
+// const rootDir = path.resolve(__dirname, '.');
+// const nodeEnv = process.env.NODE_ENV || 'development';
+// const envFile = `.env.${nodeEnv}`;
+// const envPath = path.join(rootDir, envFile);
 
-if (fs.existsSync(envPath)) {
-  console.log(`Using ${envFile} for environment variables`);
-  dotenv.config({ path: envPath });
-} else {
-  console.warn(`${envFile} not found. Falling back to .env`);
-  dotenv.config({ path: path.join(rootDir, '.env') });
-}
-
+// if (fs.existsSync(envPath)) {
+//   console.log(`Using ${envFile} for environment variables`);
+//   dotenv.config({ path: envPath });
+// } else {
+  //   console.warn(`${envFile} not found. Falling back to .env`);
+  //   dotenv.config({ path: path.join(rootDir, '.env') });
+  // }
+  
+dotenv.config();
 const migrationDirectory = path.join(__dirname, 'migrations');
 
 interface ConnectionConfig {

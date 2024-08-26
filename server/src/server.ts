@@ -1,14 +1,18 @@
 import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
-import path from "path";
+
 import config from "./config";
 import { errorHandler } from "./middleware/errorHandler";
 import routes from "./routes";
 
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const app = express();
+dotenv.config();
+
+console.log(process.env.NODE_ENV);
+console.log(process.env.PORT);
+console.log(process.env.ALLOWED_ORIGINS);
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
