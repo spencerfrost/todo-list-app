@@ -14,6 +14,7 @@ import Landing from "pages/Landing";
 import LoginRegister from "pages/LoginRegister";
 import Settings from "pages/Settings";
 import TodoApp from "pages/ToDoApp";
+import GameContainer from "tasktycoon/GameContainer";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({children}) => {
   const { isAuthenticated, loading } = useAuth();
@@ -52,6 +53,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={homePageElement} />
       <Route path="/settings" element={settingsPageElement} />
       <Route path="/components" element={<ComponentShowcase />} />
+      <Route path="/game" element={<GameContainer />} />
     </Routes>
   );
 };
