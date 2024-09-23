@@ -32,3 +32,4 @@ server/node_modules
 server/package-lock.json
 
 generate_tree.py
+.vscode/settings.json
