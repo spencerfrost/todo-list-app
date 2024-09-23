@@ -1,0 +1,73 @@
+version: 2.1
+orbs:
+  node: circleci/node@6.1.0
+jobs:
+  build:
+    docker:
+      - image: cimg/node:lts
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Install Dependencies
+          command: npm run install-all
+      - run:
+          name: Build Client
+          command: npm run build --prefix client
+      - run:
+          name: Build Server
+          command: npm run build --prefix server
+      - run:
+          name: Compile Migrations
+          command: |
+            cd server
+            npx tsc migrations/*.ts --outDir dist/migrations
+      - persist_to_workspace:
+          root: .
+          paths:
+            - client/build
+            - server/dist
+            - server/package.json
+            - server/package-lock.json
+
+  deploy:
+    machine: true
+    steps:
+      - attach_workspace:
+          at: /home/circleci/project
+      - add_ssh_keys:
+          fingerprints:
+            - "SHA256:6+qHFQDbqCYFzFzHfY7fpBaly2rEB83DUxswOGj6dkI"
+      - run:
+          name: Copy compiled migrations to server
+          command: |
+            if [ -d "/home/circleci/project/server/dist/migrations" ] && [ "$(ls -A /home/circleci/project/server/dist/migrations)" ]; then
+              scp -vr /home/circleci/project/server/dist/migrations/* $SERVER_USER@$SERVER_IP:SERVER_DIR/server/migrations
+            else
+              echo "No compiled migrations to copy"
+            fi
+      - run:
+          name: Run database migrations
+          command: |
+            ssh -v $SERVER_USER@$SERVER_IP "cd SERVER_DIR/server && NODE_ENV=production npm run migrate || echo 'No migrations to run'"
+      - run:
+          name: Deploy to Server
+          command: |
+            scp -vr /home/circleci/project/client/build/* $SERVER_USER@$SERVER_IP:SERVER_DIR/client
+            scp -vr /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json $SERVER_USER@$SERVER_IP:SERVER_DIR/server
+            ssh -v $SERVER_USER@$SERVER_IP "cd SERVER_DIR/server && npm install --production && pm2 restart taskmaster-server && sudo systemctl restart nginx"
+
+workflows:
+  build-and-deploy:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only: master
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master
