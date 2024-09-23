@@ -56,7 +56,7 @@ jobs:
           command: |
             scp -vr /home/circleci/project/client/build/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/client
             scp -vr /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json $SERVER_USER@$SERVER_IP:$SERVER_DIR/server
-            ssh -v $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && npm install --production && pm2 restart taskmaster-server && sudo systemctl restart nginx"
+            ssh -v $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && npm install --production && pm2 restart $SERVER_DIR/ecosystem.config.js && sudo systemctl restart nginx"
 
 workflows:
   build-and-deploy:
