@@ -15,6 +15,20 @@ jest.mock("components/ui/dialog", () => ({
   DialogDescription: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
+jest.mock("components/CategoryManager", () => ({
+  __esModule: true,
+  default: ({ onCategorySelect }: { onCategorySelect: (id: number) => void }) => (
+    <select
+      data-testid="category-manager"
+      onChange={(e) => onCategorySelect(Number(e.target.value))}
+      aria-label="Select category"
+    >
+      <option value="1">Category 1</option>
+      <option value="2">Category 2</option>
+    </select>
+  ),
+}));
+
 describe("TaskForm", () => {
   const mockTask = {
     id: 1,
@@ -134,5 +148,35 @@ describe("TaskForm", () => {
     fireEvent.click(screen.getByTestId('delete-task-button'));
 
     expect(mockOnDelete).toHaveBeenCalledWith(1);
+  });
+  
+  it("selects a category", async () => {
+    render(
+      <TaskForm
+        task={null}
+        onClose={mockOnClose}
+        onTaskUpdated={mockOnTaskUpdated}
+        onDelete={mockOnDelete}
+      />
+    );
+  
+    fireEvent.change(screen.getByTestId("category-manager"), {
+      target: { value: "2" },
+    });
+  
+    fireEvent.change(screen.getByLabelText("Title"), {
+      target: { value: "New Task" },
+    });
+  
+    fireEvent.click(screen.getByText("Create"));
+  
+    await waitFor(() => {
+      expect(createTask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "New Task",
+          category_id: 2,
+        })
+      );
+    });
   });
 });
