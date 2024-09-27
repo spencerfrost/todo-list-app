@@ -9,6 +9,7 @@ export interface Task {
   location?: string;
   energy_level?: "Low" | "Medium" | "High";
   completed: boolean;
+  user_id: number;
 }
 
 export interface User {
@@ -30,4 +31,13 @@ export interface UserSettings {
   sort_by: string;
   sort_order: 'asc' | 'desc';
   sort_completed_to_bottom: boolean;
+}
+
+export interface Category {
+  id: number;
+  user_id: number;
+  name: string;
+  color?: string;
+  created_at: string;
+  updated_at: string;
 }

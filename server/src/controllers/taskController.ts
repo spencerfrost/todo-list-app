@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import db from "../db";
+import { Task } from "../types";
 
 // Define a custom interface for the request with userId
 interface RequestWithUserId extends Request {
@@ -17,9 +18,18 @@ const checkAuthorization = (req: RequestWithUserId, res: Response) => {
 
 // Get all tasks
 export const getAllTasks = async (req: RequestWithUserId, res: Response) => {
-  if (!checkAuthorization(req, res)) return;
+  if (!req.userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
   try {
-    const tasks = await db("tasks").where({ user_id: req.userId }).select("*");
+    const tasks = await db("tasks")
+      .leftJoin("categories", "tasks.category_id", "categories.id")
+      .where("tasks.user_id", req.userId)
+      .select(
+        "tasks.*",
+        "categories.name as category_name",
+        "categories.color as category_color"
+      );
     res.json(tasks);
   } catch (error) {
     console.error(error);
@@ -29,13 +39,15 @@ export const getAllTasks = async (req: RequestWithUserId, res: Response) => {
 
 // Create a new task
 export const createTask = async (req: RequestWithUserId, res: Response) => {
-  if (!checkAuthorization(req, res)) return;
+  if (!req.userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
   try {
     const taskData = { ...req.body, user_id: req.userId };
     if (!taskData.title) {
       return res.status(400).json({ error: "Title is required" });
     }
-    const [newTask] = await db("tasks").insert(taskData).returning("*");
+    const [newTask] = await db<Task>("tasks").insert(taskData).returning("*");
     res.status(201).json(newTask);
   } catch (error: any) {
     console.error('Error creating task:', error);
@@ -52,7 +64,8 @@ export const getTask = async (req: RequestWithUserId, res: Response) => {
   if (!checkAuthorization(req, res)) return;
   try {
     const task = await db("tasks")
-      .where({ id: req.params.id, user_id: req.userId })
+      .where("tasks.id", Number(req.params.id))
+      .andWhere("tasks.user_id", req.userId)
       .first();
     if (!task) {
       return res.status(404).json({ error: "Task not found" });
@@ -66,22 +79,32 @@ export const getTask = async (req: RequestWithUserId, res: Response) => {
 
 // Update a task
 export const updateTask = async (req: RequestWithUserId, res: Response) => {
-  if (!checkAuthorization(req, res)) return;
+  if (!req.userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
   try {
-    const updated = await db("tasks")
-      .where({ id: req.params.id, user_id: req.userId })
+    const { id } = req.params;
+    const updated = await db<Task>("tasks")
+      .where({ id: Number(id), user_id: Number(req.userId) })
       .update(req.body);
     if (!updated) {
       return res.status(404).json({ error: "Task not found or you don't have permission to update it" });
     }
-    const updatedTask = await db("tasks").where({ id: req.params.id }).first();
+    const updatedTask = await db<Task>("tasks")
+      .leftJoin("categories", "tasks.category_id", "categories.id")
+      .where("tasks.id", req.params.id)
+      .select(
+        "tasks.*",
+        "categories.name as category_name",
+        "categories.color as category_color"
+      )
+      .first();
     res.json(updatedTask);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "An error occurred while updating the task" });
   }
 };
-
 // Delete a task
 export const deleteTask = async (req: RequestWithUserId, res: Response) => {
   if (!checkAuthorization(req, res)) return;

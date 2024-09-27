@@ -16,9 +16,17 @@ export interface Task {
   priority?: "Low" | "Medium" | "High";
   estimated_time?: number;
   due_date?: string;
-  category?: string;
+  category_id?: number;
   location?: string;
   energy_level?: "Low" | "Medium" | "High";
   completed: boolean;
   created_at: string;
+  category_name?: string;
+  category_color?: string;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  color?: string;
 }

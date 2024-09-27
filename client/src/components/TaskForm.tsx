@@ -1,6 +1,3 @@
-import { Trash2 } from "lucide-react";
-import React, { useEffect, useState } from "react";
-
 import { Button } from "components/ui/button";
 import {
   Dialog,
@@ -20,6 +17,10 @@ import {
   SelectValue,
 } from "components/ui/select";
 
+import CategoryManager from "components/CategoryManager";
+
+import { Trash2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import { createTask, updateTask } from "services/api";
 import { Task } from "services/types";
 
@@ -41,12 +42,14 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
   useEffect(() => {
     setEditedTask(
-      task ?? { id: 0, title: "", description: "", completed: false } as Task
+      task ?? ({ id: 0, title: "", description: "", completed: false } as Task)
     );
   }, [task]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e:
+      | React.ChangeEvent<HTMLInputElement>
+      | React.ChangeEvent<HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setEditedTask((prev) => (prev ? { ...prev, [name]: value } : null));
@@ -63,11 +66,16 @@ const TaskForm: React.FC<TaskFormProps> = ({
         return;
       }
       try {
+        // Create a new object without category_name and category_color
+        const { category_name, category_color, ...taskToSubmit } = editedTask;
+  
         let updatedTask: Task;
         if (editedTask.id === 0) {
-          updatedTask = await createTask(editedTask);
+          // Create new task
+          updatedTask = await createTask(taskToSubmit);
         } else {
-          updatedTask = await updateTask(editedTask.id, editedTask);
+          // Update existing task
+          updatedTask = await updateTask(editedTask.id, taskToSubmit);
         }
         onTaskUpdated(updatedTask);
         onClose();
@@ -76,6 +84,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
       }
     }
   };
+  
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -88,7 +97,10 @@ const TaskForm: React.FC<TaskFormProps> = ({
 
   return (
     <Dialog open={!!task} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]" data-testid="task-form-dialog">
+      <DialogContent
+        className="sm:max-w-[425px]"
+        data-testid="task-form-dialog"
+      >
         <DialogHeader>
           <DialogTitle>
             {editedTask.id === 0 ? "Create Task" : "Edit Task"}
@@ -111,9 +123,7 @@ const TaskForm: React.FC<TaskFormProps> = ({
               data-testid="task-title-input"
               className={titleError ? "border-red-500" : ""}
             />
-            {titleError && (
-              <p className="text-red-500 text-sm">{titleError}</p>
-            )}
+            {titleError && <p className="text-red-500 text-sm">{titleError}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
@@ -173,14 +183,13 @@ const TaskForm: React.FC<TaskFormProps> = ({
           </div>
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Input
-              id="category"
-              type="text"
-              name="category"
-              value={editedTask.category ?? ""}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Category"
+            <CategoryManager
+              onCategorySelect={(categoryId) =>
+                setEditedTask((prev) =>
+                  prev ? { ...prev, category_id: categoryId } : null
+                )
+              }
+              selectedCategoryId={editedTask.category_id}
             />
           </div>
           <div className="space-y-2">

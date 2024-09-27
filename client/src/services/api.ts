@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Task, UserSettings } from "services/types";
+import { Category, Task, UserSettings } from "services/types";
 
 const API_URL = process.env.NODE_ENV === "production" ? "https://taskmaster.mrspinn.ca/api" : "http://localhost:5000/api";
 
@@ -20,6 +20,7 @@ axiosInstance.interceptors.request.use(
   }
 );
 
+// Existing task-related API calls
 export const getTasks = async (): Promise<Task[]> => {
   const response = await axiosInstance.get("/tasks");
   return response.data;
@@ -42,7 +43,30 @@ export const deleteTask = async (id: number): Promise<void> => {
   await axiosInstance.delete(`/tasks/${id}`);
 };
 
-// Settings-related API calls
+// New category-related API calls
+export const getCategories = async (): Promise<Category[]> => {
+  const response = await axiosInstance.get("/categories");
+  return response.data;
+};
+
+export const createCategory = async (category: Omit<Category, "id" | "user_id">): Promise<Category> => {
+  const response = await axiosInstance.post("/categories", category);
+  return response.data;
+};
+
+export const updateCategory = async (
+  id: number,
+  category: Partial<Category>
+): Promise<Category> => {
+  const response = await axiosInstance.put(`/categories/${id}`, category);
+  return response.data;
+};
+
+export const deleteCategory = async (id: number): Promise<void> => {
+  await axiosInstance.delete(`/categories/${id}`);
+};
+
+// Existing settings-related API calls
 export const getSettings = async (): Promise<UserSettings> => {
   const response = await axiosInstance.get("/settings");
   return response.data;
