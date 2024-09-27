@@ -1,64 +1,67 @@
-# Database Naming Convention Guide
+# Todo List App - Server
 
-## General Rules
-- Use snake_case for table and column names
-- Use all lowercase letters
-- Use full words rather than abbreviations where possible
-- Be descriptive but concise
+This project is the backend part of the Todo List App, built with Node.js, TypeScript, and Express. It provides the server-side logic, APIs, and database interactions for the application.
 
-## Examples
-- Good: user_accounts, first_name, last_login_date
-- Avoid: userAccounts, firstName, lastlogindate
+## Features
 
-## Steps to Implement
+- **Node.js**: Built using Node.js for server-side JavaScript execution.
+- **TypeScript**: Strong typing for better development experience.
+- **Express**: Web framework for building APIs and handling HTTP requests.
+- **Database**: Uses Knex.js for database migrations and PostgreSQL for data storage.
+- **Authentication**: Implements JWT for user authentication.
+- **Environment Configuration**: Uses dotenv for managing environment variables.
 
-1. Database Schema:
-   - Rename columns: 
-     - energyLevel -> energy_level
-     - estimatedTime -> estimated_time
-     - dueDate -> due_date
+## Prerequisites
 
-2. Knex Migration (if using Knex.js):
-   ```javascript
-   exports.up = function(knex) {
-     return knex.schema.alterTable('tasks', function(table) {
-       table.renameColumn('energyLevel', 'energy_level');
-       table.renameColumn('estimatedTime', 'estimated_time');
-       table.renameColumn('dueDate', 'due_date');
-     });
-   };
+- Node.js
+- npm (Node Package Manager)
+- PostgreSQL
 
-   exports.down = function(knex) {
-     return knex.schema.alterTable('tasks', function(table) {
-       table.renameColumn('energy_level', 'energyLevel');
-       table.renameColumn('estimated_time', 'estimatedTime');
-       table.renameColumn('due_date', 'dueDate');
-     });
-   };
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/spencerfrost/todo-list-app.git
+   cd todo-list-app/server
    ```
 
-3. Backend (Node.js/Express):
-   - Update queries to use snake_case column names
-   - If using an ORM, update model definitions
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-4. Frontend (React):
-   - Update the Task interface in your API service file:
-     ```typescript
-     export interface Task {
-       id: number;
-       title: string;
-       description: string;
-       priority: "Low" | "Medium" | "High";
-       estimated_time: number;
-       due_date: string;
-       category: string;
-       location: string;
-       energy_level: "Low" | "Medium" | "High";
-     }
-     ```
-   - Update all references in your React components to use the new snake_case property names
+3. Set up environment variables:
+   Create a `.env` file in the `server` directory and add your environment variables:
+   ```env
+    DB_HOST=
+    DB_USER=
+    DB_PASSWORD=
+    DB_NAME=
 
-5. API Layer:
-   - If you have a separate API layer or service, update it to transform between snake_case (for database interactions) and camelCase (for frontend interactions) if necessary.
+    JWT_SECRET=
+    PORT=5000
+    ALLOWED_ORIGINS=http://localhost:3000
+   ```
 
-Remember to test thoroughly after making these changes, as they affect multiple layers of your application.
+## Available Scripts
+
+In the project directory, you can run:
+
+- `npm start`: Starts the server in production mode.
+- `npm run dev`: Starts the server in development mode with hot reloading using nodemon.
+- `npm run build`: Compiles the TypeScript code into JavaScript.
+- `npm run migrate`: Runs the latest database migrations.
+- `npm run migrate:make`: Creates a new migration file.
+- `npm run knex`: Runs Knex.js commands.
+- `npm test`: Runs the test suite with Jest.
+
+## Learn More
+
+- [Node.js Documentation](https://nodejs.org/en/docs/)
+- [Express Documentation](https://expressjs.com/)
+- [Knex.js Documentation](http://knexjs.org/)
+- [TypeScript Documentation](https://www.typescriptlang.org/)
+
+## License
+
+This project is licensed under the ISC License. For more details, refer to the [LICENSE](../LICENSE) file.
