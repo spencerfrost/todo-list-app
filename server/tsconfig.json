@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node", "express", "dotenv"]
+    "types": ["node", "express", "dotenv", "knex", "jest"]
   },
   "include": ["src/**/*", "knexfile.ts"],
   "exclude": ["node_modules"]

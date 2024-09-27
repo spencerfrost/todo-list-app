@@ -10,17 +10,29 @@ export const register = async (req: Request, res: Response) => {
     const { username, email, password } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const [userId] = await db("users")
+    const [user] = await db("users")
       .insert({
         username,
         email,
         password: hashedPassword,
       })
-      .returning("id");
+      .returning(["id", "email", "username"]);
 
-    res.status(201).json({ message: "User registered successfully", userId });
-  } catch (error) {
+    const token = jwt.sign({ userId: user.id }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.status(201).json({ message: "User registered successfully", user, token });
+  } catch (error: any) {
     console.error(error);
+    if (error.code === '23505') {
+      if (error.constraint === 'users_email_unique') {
+        return res.status(400).json({ error: "Email already in use" });
+      }
+      if (error.constraint === 'users_username_unique') {
+        return res.status(400).json({ error: "Username already in use" });
+      }
+    }
     res
       .status(500)
       .json({ error: "An error occurred while registering the user" });

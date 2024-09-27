@@ -2,6 +2,39 @@ version: 2.1
 orbs:
   node: circleci/node@6.1.0
 jobs:
+  test-backend:
+    docker:
+      - image: cimg/node:lts
+      - image: cimg/postgres:14.1
+        environment:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+          app-dir: server
+      - run:
+          name: Run Backend Tests
+          command: |
+            cd server
+            npm run test
+
+  test-frontend:
+    docker:
+      - image: cimg/node:lts
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: npm
+          app-dir: client
+      - run:
+          name: Run Frontend Tests
+          command: |
+            cd client
+            npm run test
+
   build:
     docker:
       - image: cimg/node:lts
@@ -32,7 +65,8 @@ jobs:
             - server/package-lock.json
 
   deploy:
-    machine: true
+    machine: 
+      image: ubuntu-2204:current
     steps:
       - attach_workspace:
           at: /home/circleci/project
@@ -59,9 +93,20 @@ jobs:
             ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && npm install --production && pm2 restart $SERVER_DIR/server/ecosystem.config.js && sudo systemctl restart nginx"
 
 workflows:
-  build-and-deploy:
+  test-build-and-deploy:
     jobs:
+      - test-backend:
+          filters:
+            branches:
+              only: master
+      - test-frontend:
+          filters:
+            branches:
+              only: master
       - build:
+          requires:
+            - test-backend
+            - test-frontend
           filters:
             branches:
               only: master

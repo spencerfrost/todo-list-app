@@ -6,13 +6,8 @@ import config from "./config";
 import { errorHandler } from "./middleware/errorHandler";
 import routes from "./routes";
 
-
 const app = express();
 dotenv.config();
-
-console.log(process.env.NODE_ENV);
-console.log(process.env.PORT);
-console.log(process.env.ALLOWED_ORIGINS);
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
@@ -34,7 +29,6 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Logging middleware for debugging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Full URL: ${req.originalUrl}`);
   next();
@@ -59,13 +53,17 @@ app.use((req, res) => {
 });
 
 const port = config.port || 5000;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
 
 app.use('*', (req, res) => {
   console.log(`Unmatched route: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ message: 'Route not found', path: req.originalUrl });
 });
 
-export default app;
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+export { app };
+

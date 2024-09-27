@@ -18,25 +18,25 @@ export const authenticateToken = (
   const token = authHeader?.split(" ")[1];
 
   if (!token) {
-    return res.sendStatus(401);
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   if (!process.env.JWT_SECRET) {
     console.error("JWT_SECRET is not set in environment variables");
-    return res.sendStatus(500);
+    return res.status(500).json({ error: "Internal server error" });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
       console.error("JWT verification failed:", err.message);
-      return res.sendStatus(403);
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     const decodedToken = decoded as jwt.JwtPayload;
 
     if (!decodedToken.userId) {
       console.error("userId not found in token payload");
-      return res.sendStatus(403);
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     req.userId = decodedToken.userId;
