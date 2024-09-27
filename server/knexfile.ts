@@ -52,6 +52,13 @@ const config: Record<string, Knex.Config> = {
   test: {
     ...createConfig('test'),
     client: "postgresql",
+    connection: {
+      host: process.env.TEST_DB_HOST ?? 'localhost',
+      database: process.env.TEST_DB_NAME ?? 'test_db',
+      user: process.env.TEST_DB_USER ?? 'test_user',
+      password: process.env.TEST_DB_PASSWORD ?? 'test_password',
+      port: parseInt(process.env.TEST_DB_PORT ?? '5432', 10),
+    },
     migrations: {
       directory: './migrations',
     },
