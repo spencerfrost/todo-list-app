@@ -7,4 +7,7 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  scripts: {
+    "test": "cross-env NODE_ENV=test jest --detectOpenHandles"
+  },
 };
