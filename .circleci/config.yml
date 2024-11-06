@@ -94,7 +94,7 @@ jobs:
             echo '{ "compilerOptions": { "incremental": true } }' > tsconfig.tsbuildinfo
             npm run build
             # Compile migrations
-            npx tsc migrations/*.ts --outDir dist/migrations --incremental
+            npx tsc migrations/*.ts --outDir dist/migrations --incremental --tsBuildInfoFile tsconfig.tsbuildinfo
             tar -czf dist.tar.gz dist/ package*.json
       - save_cache:
           key: vite-build-cache-v1-{{ .Branch }}-{{ .Revision }}
