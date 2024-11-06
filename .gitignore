@@ -23,3 +23,6 @@ yarn-error.log*
 
 generate_tree.py
 .vscode/settings.json
+
+# CircleCI
+frontend-test-results.txt
