@@ -4,7 +4,7 @@ import { Input } from 'components/ui/input';
 import { Label } from 'components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from 'components/ui/select';
 import { useToast } from 'components/ui/use-toast';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { createCategory, getCategories } from 'services/api';
 import { Category } from 'services/types';
 
@@ -22,11 +22,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategorySelect, sel
   const [newCategoryColor, setNewCategoryColor] = useState(COLORS[0]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const fetchedCategories = await getCategories();
       setCategories(fetchedCategories);
@@ -38,7 +34,11 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({ onCategorySelect, sel
         variant: 'destructive',
       });
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   const handleCreateCategory = async () => {
     try {
