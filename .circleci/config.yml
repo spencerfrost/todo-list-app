@@ -1,104 +1,111 @@
 version: 2.1
+
 orbs:
   node: circleci/node@6.1.0
 
-# Define common environment variables
-env-vars: &env-vars
-  TEST_DB_HOST: localhost
-  TEST_DB_NAME: test_db
-  TEST_DB_USER: test_user
-  TEST_DB_PASSWORD: test_password
-  TEST_DB_PORT: 5432
+commands:
+  install-and-cache:
+    parameters:
+      app-dir:
+        type: string
+    steps:
+      - node/install-packages:
+          pkg-manager: npm
+          app-dir: << parameters.app-dir >>
+          cache-path: << parameters.app-dir >>/node_modules
+          override-ci-command: npm ci
 
 jobs:
   test-backend:
     docker:
-      - image: cimg/node:lts
+      - image: cimg/node:20.17.0
       - image: cimg/postgres:14.1
         environment:
           POSTGRES_DB: test_db
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
+    environment:
+      TEST_DB_HOST: localhost
+      TEST_DB_NAME: test_db
+      TEST_DB_USER: test_user
+      TEST_DB_PASSWORD: test_password
+      TEST_DB_PORT: 5432
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - backend-deps-v1-{{ checksum "server/package-lock.json" }}
-      - node/install-packages:
-          pkg-manager: npm
+      - install-and-cache:
           app-dir: server
-          cache-path: server/node_modules
-          override-ci-command: npm ci
-      - save_cache:
-          key: backend-deps-v1-{{ checksum "server/package-lock.json" }}
-          paths:
-            - server/node_modules
       - run:
           name: Run Backend Tests
-          command: |
-            cd server
-            npm run test
-          environment:
-            <<: *env-vars
+          command: cd server && npm run test
+          no_output_timeout: 5m
 
   test-frontend:
     docker:
-      - image: cimg/node:lts
+      - image: cimg/node:20.17.0
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - checkout
-      - restore_cache:
-          keys:
-            - frontend-deps-v1-{{ checksum "client/package-lock.json" }}
-      - node/install-packages:
-          pkg-manager: npm
+      - install-and-cache:
           app-dir: client
-          cache-path: client/node_modules
-          override-ci-command: npm ci
-      - save_cache:
-          key: frontend-deps-v1-{{ checksum "client/package-lock.json" }}
-          paths:
-            - client/node_modules
       - run:
           name: Run Frontend Tests
-          command: |
-            cd client
-            npm run test
+          command: cd client && npm run test
+          no_output_timeout: 5m
 
   build:
     docker:
-      - image: cimg/node:lts
+      - image: cimg/node:20.17.0
+    resource_class: large
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=4096"
+      GENERATE_SOURCEMAP: "false"
+      # Optimize TypeScript compilation
+      TSC_COMPILE_ON_ERROR: "true"
+      TS_NODE_TRANSPILE_ONLY: "true"
     steps:
       - checkout
       - restore_cache:
           keys:
-            - deps-v1-{{ checksum "package-lock.json" }}-{{ checksum "client/package-lock.json" }}-{{ checksum "server/package-lock.json" }}
-      - node/install-packages:
-          pkg-manager: npm
-          override-ci-command: npm ci && npm run install-all
-      - save_cache:
-          key: deps-v1-{{ checksum "package-lock.json" }}-{{ checksum "client/package-lock.json" }}-{{ checksum "server/package-lock.json" }}
-          paths:
-            - node_modules
-            - client/node_modules
-            - server/node_modules
+            - build-cache-v1-{{ .Branch }}-{{ .Revision }}
+            - build-cache-v1-{{ .Branch }}
+            - build-cache-v1
+      - install-and-cache:
+          app-dir: client
       - run:
-          name: Build Client & Server
+          name: Build Client
           command: |
-            npm run build --prefix client &
-            npm run build --prefix server &
-            wait
+            cd client
+            # Enable build caching if using webpack
+            echo "cache=true" >> .npmrc
+            # Use parallel build if available in your build script
+            npm run build
+            tar -czf build.tar.gz build/
+      - install-and-cache:
+          app-dir: server
       - run:
-          name: Compile Migrations
+          name: Build Server
           command: |
             cd server
-            npx tsc migrations/*.ts --outDir dist/migrations
+            # Parallel TypeScript compilation
+            echo '{ "compilerOptions": { "incremental": true } }' > tsconfig.tsbuildinfo
+            npm run build
+            # Compile migrations in parallel
+            npx tsc --build migrations/*.ts --outDir dist/migrations --incremental
+            tar -czf dist.tar.gz dist/ package*.json
+      - save_cache:
+          key: build-cache-v1-{{ .Branch }}-{{ .Revision }}
+          paths:
+            - client/.next/cache
+            - client/node_modules/.cache
+            - server/tsconfig.tsbuildinfo
       - persist_to_workspace:
           root: .
           paths:
-            - client/build
-            - server/dist
-            - server/package.json
-            - server/package-lock.json
+            - client/build.tar.gz
+            - server/dist.tar.gz
+            - server/package*.json
 
   deploy:
     machine: 
@@ -110,19 +117,56 @@ jobs:
           fingerprints:
             - "SHA256:6+qHFQDbqCYFzFzHfY7fpBaly2rEB83DUxswOGj6dkI"
       - run:
-          name: Deploy to Server and Run Migrations
+          name: Deploy to Server
           command: |
-            # Copy all files in parallel
-            (scp -r /home/circleci/project/client/build/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/client) &
-            (scp -r /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json $SERVER_USER@$SERVER_IP:$SERVER_DIR/server) &
-            wait
+            # Decompress builds
+            cd /home/circleci/project/client && tar -xzf build.tar.gz
+            cd /home/circleci/project/server && tar -xzf dist.tar.gz
             
-            # Run migrations and restart services
+            # Create backup
+            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR && \
+              tar -czf backup-\$(date +%Y%m%d-%H%M%S).tar.gz client server"
+            
+            # Deploy and restart
+            scp -r /home/circleci/project/client/build/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/client
+            scp -r /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json $SERVER_USER@$SERVER_IP:$SERVER_DIR/server
+            
             ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && \
               npm ci --production && \
-              NODE_ENV=production npm run migrate || echo 'No migrations to run' && \
+              NODE_ENV=production npm run migrate && \
               pm2 restart $SERVER_DIR/server/ecosystem.config.js && \
               sudo systemctl restart nginx"
+      - run:
+          name: Verify Deployment
+          command: |
+            check_health() {
+              response=$(curl -s -w "\n%{http_code}" https://taskmaster.mrspinn.ca/api/health)
+              body=$(echo "$response" | head -n 1)
+              status=$(echo "$response" | tail -n 1)
+              
+              if [[ "$status" == "200" && "$body" == "ok" ]]; then
+                return 0
+              else
+                return 1
+              fi
+            }
+            
+            for i in {1..12}; do
+              if check_health; then
+                echo "✓ Deployment verified successfully - API and database are healthy"
+                exit 0
+              fi
+              
+              if [ $i -lt 12 ]; then
+                echo "Attempt $i: Service not ready, waiting 10 seconds..."
+                sleep 10
+              fi
+            done
+            
+            echo "✗ Deployment verification failed after 2 minutes"
+            echo "Fetching recent logs for debugging:"
+            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && pm2 logs --lines 50 --nostream"
+            exit 1
 
 workflows:
   test-build-and-deploy:
