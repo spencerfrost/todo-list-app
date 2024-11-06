@@ -37,8 +37,14 @@ jobs:
           app-dir: server
       - run:
           name: Run Backend Tests
-          command: cd server && npm run test
+          command: |
+            cd server
+            npm run test | tee test-results.txt
           no_output_timeout: 5m
+      # Store test results as artifacts
+      - store_artifacts:
+          path: server/test-results.txt
+          destination: backend-test-results.txt
 
   test-frontend:
     docker:
@@ -51,8 +57,14 @@ jobs:
           app-dir: client
       - run:
           name: Run Frontend Tests
-          command: cd client && npm run test
+          command: |
+            cd client
+            npm run test | tee test-results.txt
           no_output_timeout: 5m
+      # Store test results as artifacts
+      - store_artifacts:
+          path: client/test-results.txt
+          destination: frontend-test-results.txt
 
   build:
     docker:
@@ -61,7 +73,6 @@ jobs:
       NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - checkout
-      # Install client dependencies first
       - install-and-cache:
           app-dir: client
       - run:
@@ -70,7 +81,6 @@ jobs:
             cd client
             npm run build
             tar -czf build.tar.gz build/
-      # Install server dependencies
       - install-and-cache:
           app-dir: server
       - run:
@@ -80,6 +90,27 @@ jobs:
             npm run build
             npx tsc migrations/*.ts --outDir dist/migrations
             tar -czf dist.tar.gz dist/ package*.json
+      # Store build stats and sizes
+      - run:
+          name: Generate Build Stats
+          command: |
+            echo "Client Build Size:" > build-stats.txt
+            du -sh client/build >> build-stats.txt
+            echo "\nServer Build Size:" >> build-stats.txt
+            du -sh server/dist >> build-stats.txt
+            echo "\nDetailed Client Build Stats:" >> build-stats.txt
+            find client/build -type f -exec du -h {} \; >> build-stats.txt
+      # Store the build artifacts
+      - store_artifacts:
+          path: build-stats.txt
+          destination: build-stats.txt
+      - store_artifacts:
+          path: client/build
+          destination: client-build
+      - store_artifacts:
+          path: server/dist
+          destination: server-dist
+      # Persist for deployment
       - persist_to_workspace:
           root: .
           paths:
@@ -96,6 +127,13 @@ jobs:
       - add_ssh_keys:
           fingerprints:
             - "SHA256:6+qHFQDbqCYFzFzHfY7fpBaly2rEB83DUxswOGj6dkI"
+      - run:
+          name: Generate Deployment Log
+          command: |
+            echo "Deployment started at $(date)" > deployment-log.txt
+            echo "\nDeploying build artifacts:" >> deployment-log.txt
+            ls -lh /home/circleci/project/client/build.tar.gz >> deployment-log.txt
+            ls -lh /home/circleci/project/server/dist.tar.gz >> deployment-log.txt
       - run:
           name: Deploy to Server
           command: |
@@ -115,38 +153,46 @@ jobs:
               npm ci --production && \
               NODE_ENV=production npm run migrate && \
               pm2 restart $SERVER_DIR/server/ecosystem.config.js && \
-              sudo systemctl restart nginx"
+              sudo systemctl restart nginx" 2>&1 | tee -a deployment-log.txt
       - run:
           name: Verify Deployment
           command: |
-            check_health() {
-              response=$(curl -s -w "\n%{http_code}" https://taskmaster.mrspinn.ca/api/health)
-              body=$(echo "$response" | head -n 1)
-              status=$(echo "$response" | tail -n 1)
+            {
+              check_health() {
+                response=$(curl -s -w "\n%{http_code}" https://taskmaster.mrspinn.ca/api/health)
+                body=$(echo "$response" | head -n 1)
+                status=$(echo "$response" | tail -n 1)
+                
+                if [[ "$status" == "200" && "$body" == "ok" ]]; then
+                  return 0
+                else
+                  return 1
+                fi
+              }
               
-              if [[ "$status" == "200" && "$body" == "ok" ]]; then
-                return 0
-              else
-                return 1
-              fi
-            }
-            
-            for i in {1..12}; do
-              if check_health; then
-                echo "✓ Deployment verified successfully - API and database are healthy"
-                exit 0
-              fi
+              for i in {1..12}; do
+                if check_health; then
+                  echo "✓ Deployment verified successfully - API and database are healthy"
+                  echo "Deployment completed successfully at $(date)" >> deployment-log.txt
+                  exit 0
+                fi
+                
+                if [ $i -lt 12 ]; then
+                  echo "Attempt $i: Service not ready, waiting 10 seconds..."
+                  sleep 10
+                fi
+              done
               
-              if [ $i -lt 12 ]; then
-                echo "Attempt $i: Service not ready, waiting 10 seconds..."
-                sleep 10
-              fi
-            done
-            
-            echo "✗ Deployment verification failed after 2 minutes"
-            echo "Fetching recent logs for debugging:"
-            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && pm2 logs --lines 50 --nostream"
-            exit 1
+              echo "✗ Deployment verification failed after 2 minutes"
+              echo "Fetching recent logs for debugging:"
+              ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && pm2 logs --lines 50 --nostream"
+              echo "Deployment failed at $(date)" >> deployment-log.txt
+              exit 1
+            } 2>&1 | tee -a deployment-log.txt
+      # Store deployment logs as artifacts
+      - store_artifacts:
+          path: deployment-log.txt
+          destination: deployment-log.txt
 
 workflows:
   test-build-and-deploy:
