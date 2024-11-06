@@ -60,26 +60,28 @@ jobs:
     resource_class: large
     environment:
       NODE_OPTIONS: "--max-old-space-size=4096"
-      GENERATE_SOURCEMAP: "false"
-      # Optimize TypeScript compilation
-      TSC_COMPILE_ON_ERROR: "true"
+      # Optimize for production build
+      VITE_BUILD_MODE: "production"
+      # Disable sourcemap for faster builds
+      VITE_GENERATE_SOURCEMAP: "false"
+      # TypeScript optimizations
       TS_NODE_TRANSPILE_ONLY: "true"
     steps:
       - checkout
       - restore_cache:
           keys:
-            - build-cache-v1-{{ .Branch }}-{{ .Revision }}
-            - build-cache-v1-{{ .Branch }}
-            - build-cache-v1
+            - vite-build-cache-v1-{{ .Branch }}-{{ .Revision }}
+            - vite-build-cache-v1-{{ .Branch }}
+            - vite-build-cache-v1
       - install-and-cache:
           app-dir: client
       - run:
           name: Build Client
           command: |
             cd client
-            # Enable build caching if using webpack
-            echo "cache=true" >> .npmrc
-            # Use parallel build if available in your build script
+            # Clear old build artifacts
+            rm -rf dist build
+            # Run build with optimizations
             npm run build
             tar -czf build.tar.gz build/
       - install-and-cache:
@@ -88,17 +90,16 @@ jobs:
           name: Build Server
           command: |
             cd server
-            # Parallel TypeScript compilation
+            # Enable incremental TypeScript builds
             echo '{ "compilerOptions": { "incremental": true } }' > tsconfig.tsbuildinfo
             npm run build
-            # Compile migrations in parallel
-            npx tsc --build migrations/*.ts --outDir dist/migrations --incremental
+            # Compile migrations
+            npx tsc migrations/*.ts --outDir dist/migrations --incremental
             tar -czf dist.tar.gz dist/ package*.json
       - save_cache:
-          key: build-cache-v1-{{ .Branch }}-{{ .Revision }}
+          key: vite-build-cache-v1-{{ .Branch }}-{{ .Revision }}
           paths:
-            - client/.next/cache
-            - client/node_modules/.cache
+            - client/node_modules/.vite
             - server/tsconfig.tsbuildinfo
       - persist_to_workspace:
           root: .
