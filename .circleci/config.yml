@@ -2,10 +2,9 @@ version: 2.1
 
 orbs:
   node: circleci/node@6.1.0
-  docker: circleci/docker@2.4.0
 
 commands:
-  install_dependencies:
+  install-and-cache:
     parameters:
       app-dir:
         type: string
@@ -14,194 +13,152 @@ commands:
           pkg-manager: npm
           app-dir: << parameters.app-dir >>
           cache-path: << parameters.app-dir >>/node_modules
-          override-ci-command: |
-            npm ci
-            npm install --save-dev jest-junit
-
-  save_test_results:
-    steps:
-      - store_test_results:
-          path: test-results
-      - store_artifacts:
-          path: test-results
+          override-ci-command: npm ci
 
 jobs:
   test-backend:
     docker:
-      - image: cimg/node:20.17.0  # Updated to match your local version
-        environment:
-          NODE_ENV: test
-          JEST_JUNIT_OUTPUT_DIR: ./test-results/backend
-          JEST_JUNIT_OUTPUT_NAME: junit.xml
-          JEST_JUNIT_CLASSNAME: "{filepath}"
-          JEST_JUNIT_TITLE: "{title}"
+      - image: cimg/node:20.17.0 # Updated to match server version
       - image: cimg/postgres:14.1
         environment:
           POSTGRES_DB: test_db
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
-          POSTGRES_HOST_AUTH_METHOD: trust
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U test_user -d test_db"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
+    environment:
+      TEST_DB_HOST: localhost
+      TEST_DB_NAME: test_db
+      TEST_DB_USER: test_user
+      TEST_DB_PASSWORD: test_password
+      TEST_DB_PORT: 5432
+      NODE_OPTIONS: "--max-old-space-size=4096" # Increased heap size for Node 20
     steps:
       - checkout
-      - install_dependencies:
+      - install-and-cache:
           app-dir: server
       - run:
-          name: Create test results directory
-          command: mkdir -p test-results/backend
+          name: Wait for PostgreSQL
+          command: |
+            for i in `seq 1 10`;
+            do
+              nc -z localhost 5432 && echo Success && exit 0
+              echo -n .
+              sleep 1
+            done
+            echo Failed waiting for PostgreSQL && exit 1
       - run:
           name: Run Backend Tests
-          command: |
-            cd server
-            # Add jest-junit to your jest configuration
-            if [ ! -f "jest.config.js" ]; then
-              echo 'module.exports = {
-                reporters: ["default", "jest-junit"],
-                testEnvironment: "node",
-                transform: {
-                  "^.+\\.tsx?$": "ts-jest"
-                }
-              }' > jest.config.js
-            else
-              # If jest.config.js exists, append the reporter
-              sed -i '/reporters/c\  reporters: ["default", "jest-junit"],' jest.config.js
-            fi
-            npm test
-          environment:
-            TEST_DB_HOST: localhost
-            TEST_DB_NAME: test_db
-            TEST_DB_USER: test_user
-            TEST_DB_PASSWORD: test_password
-            TEST_DB_PORT: 5432
-      - save_test_results
+          command: cd server && npm run test
+          no_output_timeout: 5m
 
   test-frontend:
     docker:
       - image: cimg/node:20.17.0
-        environment:
-          NODE_ENV: test
-          JEST_JUNIT_OUTPUT_DIR: ./test-results/frontend
-          JEST_JUNIT_OUTPUT_NAME: junit.xml
-          JEST_JUNIT_CLASSNAME: "{filepath}"
-          JEST_JUNIT_TITLE: "{title}"
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - checkout
-      - install_dependencies:
+      - install-and-cache:
           app-dir: client
       - run:
-          name: Create test results directory
-          command: mkdir -p test-results/frontend
-      - run:
           name: Run Frontend Tests
-          command: |
-            cd client
-            if [ ! -f "jest.config.js" ]; then
-              echo 'module.exports = {
-                reporters: ["default", "jest-junit"],
-                testEnvironment: "jsdom",
-                transform: {
-                  "^.+\\.tsx?$": "ts-jest"
-                }
-              }' > jest.config.js
-            else
-              # If jest.config.js exists, append the reporter
-              sed -i '/reporters/c\  reporters: ["default", "jest-junit"],' jest.config.js
-            fi
-            npm test
-      - save_test_results
+          command: cd client && npm run test
+          no_output_timeout: 5m
 
   build:
     docker:
-      - image: cimg/node:16.20
-        environment:
-          NODE_ENV: production
+      - image: cimg/node:20.17.0
+    environment:
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - checkout
-      # Add workspace attachment for build caching
-      - attach_workspace:
-          at: .
-      - install_dependencies:
-          app-dir: .
-      - run:
-          name: Install Dependencies
-          command: npm run install-all
-      # Add build caching
-      - restore_cache:
-          keys:
-            - build-cache-{{ .Branch }}-{{ checksum "client/package-lock.json" }}-{{ checksum "server/package-lock.json" }}
+      - install-and-cache:
+          app-dir: "."
       - run:
           name: Build Client
           command: |
             cd client
-            REACT_APP_API_URL=$PROD_API_URL npm run build
+            npm run build
+            tar -czf build.tar.gz build/
       - run:
           name: Build Server
           command: |
             cd server
             npm run build
-      - run:
-          name: Compile Migrations
-          command: |
-            cd server
             npx tsc migrations/*.ts --outDir dist/migrations
-      # Save build cache
-      - save_cache:
-          key: build-cache-{{ .Branch }}-{{ checksum "client/package-lock.json" }}-{{ checksum "server/package-lock.json" }}
-          paths:
-            - client/build
-            - server/dist
+            tar -czf dist.tar.gz dist/ package*.json
       - persist_to_workspace:
           root: .
           paths:
-            - client/build
-            - server/dist
-            - server/package.json
-            - server/package-lock.json
-            - server/ecosystem.config.js
+            - client/build.tar.gz
+            - server/dist.tar.gz
+            - server/package*.json
 
   deploy:
-    machine:
+    machine: 
       image: ubuntu-2204:current
-    environment:
-      NODE_ENV: production
     steps:
       - attach_workspace:
           at: /home/circleci/project
       - add_ssh_keys:
           fingerprints:
             - "SHA256:6+qHFQDbqCYFzFzHfY7fpBaly2rEB83DUxswOGj6dkI"
-      # Add deployment verification
       - run:
-          name: Verify deployment directory
+          name: Notify Deploy Start
           command: |
-            ssh $SERVER_USER@$SERVER_IP "[ -d $SERVER_DIR ] || mkdir -p $SERVER_DIR/{client,server}"
+            echo "Starting deployment to $SERVER_IP"
+            date > deploy-start.txt
       - run:
-          name: Backup current deployment
+          name: Check Node Version on Server
           command: |
-            ssh $SERVER_USER@$SERVER_IP "if [ -d $SERVER_DIR/client ]; then tar -czf $SERVER_DIR/backup-$(date +%Y%m%d_%H%M%S).tar.gz $SERVER_DIR/{client,server}; fi"
-      - run:
-          name: Copy compiled migrations
-          command: |
-            if [ -d "/home/circleci/project/server/dist/migrations" ] && [ "$(ls -A /home/circleci/project/server/dist/migrations)" ]; then
-              scp -r /home/circleci/project/server/dist/migrations/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/server/migrations
-            else
-              echo "No compiled migrations to copy"
+            NODE_VERSION=$(ssh $SERVER_USER@$SERVER_IP "node --version")
+            if [[ "$NODE_VERSION" != "v20.17.0" ]]; then
+              echo "Warning: Server Node.js version ($NODE_VERSION) differs from CI version (v20.17.0)"
+              exit 1
             fi
-      - run:
-          name: Run database migrations
-          command: |
-            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && NODE_ENV=production npm run migrate:latest || echo 'No migrations to run'"
       - run:
           name: Deploy to Server
           command: |
+            # Decompress client build
+            cd /home/circleci/project/client
+            tar -xzf build.tar.gz
+            
+            # Decompress server files
+            cd /home/circleci/project/server
+            tar -xzf dist.tar.gz
+            
+            # Create backup of current deployment
+            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR && \
+              tar -czf backup-\$(date +%Y%m%d-%H%M%S).tar.gz client server"
+            
+            # Deploy new version
             scp -r /home/circleci/project/client/build/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/client
-            scp -r /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json /home/circleci/project/server/ecosystem.config.js $SERVER_USER@$SERVER_IP:$SERVER_DIR/server
-            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && npm ci --production && pm2 restart ecosystem.config.js && sudo systemctl restart nginx"
-      # Add health check
+            scp -r /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json $SERVER_USER@$SERVER_IP:$SERVER_DIR/server
+            
+            # Install dependencies and restart services
+            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && \
+              export NODE_OPTIONS='--max-old-space-size=4096' && \
+              npm ci --production && \
+              NODE_ENV=production npm run migrate && \
+              pm2 restart $SERVER_DIR/server/ecosystem.config.js && \
+              sudo systemctl restart nginx"
       - run:
           name: Verify Deployment
           command: |
-            sleep 10
-            curl --fail --retry 3 --retry-delay 5 https://taskmaster.mrspinn.ca/api/health || (echo "Deployment verification failed" && exit 1)
+            for i in {1..12}; do
+              if curl -s https://taskmaster.mrspinn.ca/api/health | grep -q "ok"; then
+                echo "Deployment verified successfully"
+                exit 0
+              fi
+              echo "Waiting for service to be ready..."
+              sleep 10
+            done
+            echo "Deployment verification failed"
+            exit 1
 
 workflows:
   test-build-and-deploy:
