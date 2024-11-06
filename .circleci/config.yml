@@ -14,13 +14,6 @@ commands:
           app-dir: << parameters.app-dir >>
           cache-path: << parameters.app-dir >>/node_modules
           override-ci-command: npm ci
-          
-  wait-for-postgres:
-    steps:
-      - run:
-          name: Wait for PostgreSQL
-          command: |
-            dockerize -wait tcp://localhost:5432 -timeout 1m
 
 jobs:
   test-backend:
@@ -42,12 +35,6 @@ jobs:
       - checkout
       - install-and-cache:
           app-dir: server
-      - wait-for-postgres
-      - run:
-          name: Verify PostgreSQL Connection
-          command: |
-            sudo apt-get update && sudo apt-get install -y postgresql-client
-            PGPASSWORD=$TEST_DB_PASSWORD psql -h localhost -U $TEST_DB_USER -d $TEST_DB_NAME -c '\l'
       - run:
           name: Run Backend Tests
           command: cd server && npm run test
@@ -106,40 +93,21 @@ jobs:
           fingerprints:
             - "SHA256:6+qHFQDbqCYFzFzHfY7fpBaly2rEB83DUxswOGj6dkI"
       - run:
-          name: Notify Deploy Start
-          command: |
-            echo "Starting deployment to $SERVER_IP"
-            date > deploy-start.txt
-      - run:
-          name: Check Node Version on Server
-          command: |
-            NODE_VERSION=$(ssh $SERVER_USER@$SERVER_IP "node --version")
-            if [[ "$NODE_VERSION" != "v20.17.0" ]]; then
-              echo "Warning: Server Node.js version ($NODE_VERSION) differs from CI version (v20.17.0)"
-              exit 1
-            fi
-      - run:
           name: Deploy to Server
           command: |
-            # Decompress client build
-            cd /home/circleci/project/client
-            tar -xzf build.tar.gz
+            # Decompress builds
+            cd /home/circleci/project/client && tar -xzf build.tar.gz
+            cd /home/circleci/project/server && tar -xzf dist.tar.gz
             
-            # Decompress server files
-            cd /home/circleci/project/server
-            tar -xzf dist.tar.gz
-            
-            # Create backup of current deployment
+            # Create backup
             ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR && \
               tar -czf backup-\$(date +%Y%m%d-%H%M%S).tar.gz client server"
             
-            # Deploy new version
+            # Deploy and restart
             scp -r /home/circleci/project/client/build/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/client
             scp -r /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json $SERVER_USER@$SERVER_IP:$SERVER_DIR/server
             
-            # Install dependencies and restart services
             ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && \
-              export NODE_OPTIONS='--max-old-space-size=4096' && \
               npm ci --production && \
               NODE_ENV=production npm run migrate && \
               pm2 restart $SERVER_DIR/server/ecosystem.config.js && \
