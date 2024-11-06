@@ -14,42 +14,40 @@ commands:
           app-dir: << parameters.app-dir >>
           cache-path: << parameters.app-dir >>/node_modules
           override-ci-command: npm ci
+          
+  wait-for-postgres:
+    steps:
+      - run:
+          name: Wait for PostgreSQL
+          command: |
+            dockerize -wait tcp://localhost:5432 -timeout 1m
 
 jobs:
   test-backend:
     docker:
-      - image: cimg/node:20.17.0 # Updated to match server version
+      - image: cimg/node:20.17.0
       - image: cimg/postgres:14.1
         environment:
           POSTGRES_DB: test_db
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
-        healthcheck:
-          test: ["CMD-SHELL", "pg_isready -U test_user -d test_db"]
-          interval: 10s
-          timeout: 5s
-          retries: 5
     environment:
       TEST_DB_HOST: localhost
       TEST_DB_NAME: test_db
       TEST_DB_USER: test_user
       TEST_DB_PASSWORD: test_password
       TEST_DB_PORT: 5432
-      NODE_OPTIONS: "--max-old-space-size=4096" # Increased heap size for Node 20
+      NODE_OPTIONS: "--max-old-space-size=4096"
     steps:
       - checkout
       - install-and-cache:
           app-dir: server
+      - wait-for-postgres
       - run:
-          name: Wait for PostgreSQL
+          name: Verify PostgreSQL Connection
           command: |
-            for i in `seq 1 10`;
-            do
-              nc -z localhost 5432 && echo Success && exit 0
-              echo -n .
-              sleep 1
-            done
-            echo Failed waiting for PostgreSQL && exit 1
+            sudo apt-get update && sudo apt-get install -y postgresql-client
+            PGPASSWORD=$TEST_DB_PASSWORD psql -h localhost -U $TEST_DB_USER -d $TEST_DB_NAME -c '\l'
       - run:
           name: Run Backend Tests
           command: cd server && npm run test
