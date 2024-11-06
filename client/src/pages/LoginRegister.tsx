@@ -6,7 +6,7 @@ import { Button } from "components/ui/button";
 import { Input } from "components/ui/input";
 import { useAuth } from "context/AuthContext";
 
-const API_URL = process.env.NODE_ENV === "production" ? "https://taskmaster.mrspinn.ca/api" : "http://localhost:5000/api";
+const API_URL = process.env.NODE_ENV === "production" ? "https://taskmaster.mrspinn.ca/api" : "http://localhost:3221/api";
 
 const LoginRegister: React.FC = () => {
   const navigate = useNavigate();

@@ -38,7 +38,7 @@ In the `client` directory, you can run:
 
 #### Server
 In the `server` directory, you can run:
-- `npm start`: Starts the server on [http://localhost:5000](http://localhost:5000).
+- `npm start`: Starts the server on [http://localhost:3221](http://localhost:3221).
 
 ### Available Scripts
 

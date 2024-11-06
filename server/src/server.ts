@@ -52,7 +52,7 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not Found" });
 });
 
-const port = config.port || 5000;
+const port = config.port || 3221;
 
 app.use('*', (req, res) => {
   console.log(`Unmatched route: ${req.method} ${req.originalUrl}`);

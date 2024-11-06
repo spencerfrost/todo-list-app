@@ -1,7 +1,7 @@
 import axios from "axios";
 import { Category, Task, UserSettings } from "services/types";
 
-const API_URL = process.env.NODE_ENV === "production" ? "https://taskmaster.mrspinn.ca/api" : "http://localhost:5000/api";
+const API_URL = process.env.NODE_ENV === "production" ? "https://taskmaster.mrspinn.ca/api" : "http://localhost:3221/api";
 
 const axiosInstance = axios.create({
   baseURL: API_URL,

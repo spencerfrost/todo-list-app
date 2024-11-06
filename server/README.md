@@ -39,7 +39,7 @@ This project is the backend part of the Todo List App, built with Node.js, TypeS
     DB_NAME=
 
     JWT_SECRET=
-    PORT=5000
+    PORT=3221
     ALLOWED_ORIGINS=http://localhost:3000
    ```
 
