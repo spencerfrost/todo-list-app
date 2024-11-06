@@ -1,66 +1,126 @@
 version: 2.1
+
 orbs:
   node: circleci/node@6.1.0
+  # Add Docker orb for layer caching
+  docker: circleci/docker@2.4.0
+
+# Define reusable commands
+commands:
+  install_dependencies:
+    parameters:
+      app-dir:
+        type: string
+    steps:
+      - node/install-packages:
+          pkg-manager: npm
+          app-dir: << parameters.app-dir >>
+          # Add cache-path and override-ci-command
+          cache-path: << parameters.app-dir >>/node_modules
+          override-ci-command: npm ci
+
+  save_test_results:
+    steps:
+      - store_test_results:
+          path: test-results
+      - store_artifacts:
+          path: test-results
+
 jobs:
   test-backend:
     docker:
-      - image: cimg/node:lts
+      - image: cimg/node:16.20 # Specify exact version from your docs
+        environment:
+          NODE_ENV: test
       - image: cimg/postgres:14.1
         environment:
           POSTGRES_DB: test_db
           POSTGRES_USER: test_user
           POSTGRES_PASSWORD: test_password
+          POSTGRES_HOST_AUTH_METHOD: trust
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - install_dependencies:
           app-dir: server
+      # Add test result collection
+      - run:
+          name: Create test results directory
+          command: mkdir -p test-results/backend
       - run:
           name: Run Backend Tests
           command: |
             cd server
-            TEST_DB_HOST=localhost
-            TEST_DB_NAME=test_db
-            TEST_DB_USER=test_user
-            TEST_DB_PASSWORD=test_password
-            TEST_DB_PORT=5432
-            npm run test
+            npm run test -- --ci --reporters=default --reporters=jest-junit
+          environment:
+            JEST_JUNIT_OUTPUT_DIR: ../test-results/backend
+            TEST_DB_HOST: localhost
+            TEST_DB_NAME: test_db
+            TEST_DB_USER: test_user
+            TEST_DB_PASSWORD: test_password
+            TEST_DB_PORT: 5432
+      - save_test_results
 
   test-frontend:
     docker:
-      - image: cimg/node:lts
+      - image: cimg/node:16.20
+        environment:
+          NODE_ENV: test
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      - install_dependencies:
           app-dir: client
+      - run:
+          name: Create test results directory
+          command: mkdir -p test-results/frontend
       - run:
           name: Run Frontend Tests
           command: |
             cd client
-            npm run test
+            npm run test -- --ci --reporters=default --reporters=jest-junit
+          environment:
+            JEST_JUNIT_OUTPUT_DIR: ../test-results/frontend
+      - save_test_results
 
   build:
     docker:
-      - image: cimg/node:lts
+      - image: cimg/node:16.20
+        environment:
+          NODE_ENV: production
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: npm
+      # Add workspace attachment for build caching
+      - attach_workspace:
+          at: .
+      - install_dependencies:
+          app-dir: .
       - run:
           name: Install Dependencies
           command: npm run install-all
+      # Add build caching
+      - restore_cache:
+          keys:
+            - build-cache-{{ .Branch }}-{{ checksum "client/package-lock.json" }}-{{ checksum "server/package-lock.json" }}
       - run:
           name: Build Client
-          command: npm run build --prefix client
+          command: |
+            cd client
+            REACT_APP_API_URL=$PROD_API_URL npm run build
       - run:
           name: Build Server
-          command: npm run build --prefix server
+          command: |
+            cd server
+            npm run build
       - run:
           name: Compile Migrations
           command: |
             cd server
             npx tsc migrations/*.ts --outDir dist/migrations
+      # Save build cache
+      - save_cache:
+          key: build-cache-{{ .Branch }}-{{ checksum "client/package-lock.json" }}-{{ checksum "server/package-lock.json" }}
+          paths:
+            - client/build
+            - server/dist
       - persist_to_workspace:
           root: .
           paths:
@@ -68,18 +128,30 @@ jobs:
             - server/dist
             - server/package.json
             - server/package-lock.json
+            - server/ecosystem.config.js
 
   deploy:
-    machine: 
+    machine:
       image: ubuntu-2204:current
+    environment:
+      NODE_ENV: production
     steps:
       - attach_workspace:
           at: /home/circleci/project
       - add_ssh_keys:
           fingerprints:
             - "SHA256:6+qHFQDbqCYFzFzHfY7fpBaly2rEB83DUxswOGj6dkI"
+      # Add deployment verification
       - run:
-          name: Copy compiled migrations to server
+          name: Verify deployment directory
+          command: |
+            ssh $SERVER_USER@$SERVER_IP "[ -d $SERVER_DIR ] || mkdir -p $SERVER_DIR/{client,server}"
+      - run:
+          name: Backup current deployment
+          command: |
+            ssh $SERVER_USER@$SERVER_IP "if [ -d $SERVER_DIR/client ]; then tar -czf $SERVER_DIR/backup-$(date +%Y%m%d_%H%M%S).tar.gz $SERVER_DIR/{client,server}; fi"
+      - run:
+          name: Copy compiled migrations
           command: |
             if [ -d "/home/circleci/project/server/dist/migrations" ] && [ "$(ls -A /home/circleci/project/server/dist/migrations)" ]; then
               scp -r /home/circleci/project/server/dist/migrations/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/server/migrations
@@ -89,13 +161,19 @@ jobs:
       - run:
           name: Run database migrations
           command: |
-            ssh -v $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && NODE_ENV=production npm run migrate || echo 'No migrations to run'"
+            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && NODE_ENV=production npm run migrate:latest || echo 'No migrations to run'"
       - run:
           name: Deploy to Server
           command: |
             scp -r /home/circleci/project/client/build/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/client
-            scp -r /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json $SERVER_USER@$SERVER_IP:$SERVER_DIR/server
-            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && npm install --production && pm2 restart $SERVER_DIR/server/ecosystem.config.js && sudo systemctl restart nginx"
+            scp -r /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json /home/circleci/project/server/ecosystem.config.js $SERVER_USER@$SERVER_IP:$SERVER_DIR/server
+            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && npm ci --production && pm2 restart ecosystem.config.js && sudo systemctl restart nginx"
+      # Add health check
+      - run:
+          name: Verify Deployment
+          command: |
+            sleep 10
+            curl --fail --retry 3 --retry-delay 5 https://taskmaster.mrspinn.ca/api/health || (echo "Deployment verification failed" && exit 1)
 
 workflows:
   test-build-and-deploy:
