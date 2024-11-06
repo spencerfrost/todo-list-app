@@ -4,13 +4,11 @@ package-lock.json
 /.pnp
 .pnp.js
 
-# Build files
-server/dist/*
-
 # testing
 coverage
 
 # production
+dist
 build
 
 # misc
