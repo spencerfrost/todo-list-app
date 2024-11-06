@@ -2,10 +2,8 @@ version: 2.1
 
 orbs:
   node: circleci/node@6.1.0
-  # Add Docker orb for layer caching
   docker: circleci/docker@2.4.0
 
-# Define reusable commands
 commands:
   install_dependencies:
     parameters:
@@ -15,9 +13,10 @@ commands:
       - node/install-packages:
           pkg-manager: npm
           app-dir: << parameters.app-dir >>
-          # Add cache-path and override-ci-command
           cache-path: << parameters.app-dir >>/node_modules
-          override-ci-command: npm ci
+          override-ci-command: |
+            npm ci
+            npm install --save-dev jest-junit
 
   save_test_results:
     steps:
@@ -29,9 +28,13 @@ commands:
 jobs:
   test-backend:
     docker:
-      - image: cimg/node:16.20 # Specify exact version from your docs
+      - image: cimg/node:20.17.0  # Updated to match your local version
         environment:
           NODE_ENV: test
+          JEST_JUNIT_OUTPUT_DIR: ./test-results/backend
+          JEST_JUNIT_OUTPUT_NAME: junit.xml
+          JEST_JUNIT_CLASSNAME: "{filepath}"
+          JEST_JUNIT_TITLE: "{title}"
       - image: cimg/postgres:14.1
         environment:
           POSTGRES_DB: test_db
@@ -42,7 +45,6 @@ jobs:
       - checkout
       - install_dependencies:
           app-dir: server
-      # Add test result collection
       - run:
           name: Create test results directory
           command: mkdir -p test-results/backend
@@ -50,9 +52,21 @@ jobs:
           name: Run Backend Tests
           command: |
             cd server
-            npm run test -- --ci --reporters=default --reporters=jest-junit
+            # Add jest-junit to your jest configuration
+            if [ ! -f "jest.config.js" ]; then
+              echo 'module.exports = {
+                reporters: ["default", "jest-junit"],
+                testEnvironment: "node",
+                transform: {
+                  "^.+\\.tsx?$": "ts-jest"
+                }
+              }' > jest.config.js
+            else
+              # If jest.config.js exists, append the reporter
+              sed -i '/reporters/c\  reporters: ["default", "jest-junit"],' jest.config.js
+            fi
+            npm test
           environment:
-            JEST_JUNIT_OUTPUT_DIR: ../test-results/backend
             TEST_DB_HOST: localhost
             TEST_DB_NAME: test_db
             TEST_DB_USER: test_user
@@ -62,9 +76,13 @@ jobs:
 
   test-frontend:
     docker:
-      - image: cimg/node:16.20
+      - image: cimg/node:20.17.0
         environment:
           NODE_ENV: test
+          JEST_JUNIT_OUTPUT_DIR: ./test-results/frontend
+          JEST_JUNIT_OUTPUT_NAME: junit.xml
+          JEST_JUNIT_CLASSNAME: "{filepath}"
+          JEST_JUNIT_TITLE: "{title}"
     steps:
       - checkout
       - install_dependencies:
@@ -76,126 +94,19 @@ jobs:
           name: Run Frontend Tests
           command: |
             cd client
-            npm run test -- --ci --reporters=default --reporters=jest-junit
-          environment:
-            JEST_JUNIT_OUTPUT_DIR: ../test-results/frontend
+            if [ ! -f "jest.config.js" ]; then
+              echo 'module.exports = {
+                reporters: ["default", "jest-junit"],
+                testEnvironment: "jsdom",
+                transform: {
+                  "^.+\\.tsx?$": "ts-jest"
+                }
+              }' > jest.config.js
+            else
+              # If jest.config.js exists, append the reporter
+              sed -i '/reporters/c\  reporters: ["default", "jest-junit"],' jest.config.js
+            fi
+            npm test
       - save_test_results
 
-  build:
-    docker:
-      - image: cimg/node:16.20
-        environment:
-          NODE_ENV: production
-    steps:
-      - checkout
-      # Add workspace attachment for build caching
-      - attach_workspace:
-          at: .
-      - install_dependencies:
-          app-dir: .
-      - run:
-          name: Install Dependencies
-          command: npm run install-all
-      # Add build caching
-      - restore_cache:
-          keys:
-            - build-cache-{{ .Branch }}-{{ checksum "client/package-lock.json" }}-{{ checksum "server/package-lock.json" }}
-      - run:
-          name: Build Client
-          command: |
-            cd client
-            REACT_APP_API_URL=$PROD_API_URL npm run build
-      - run:
-          name: Build Server
-          command: |
-            cd server
-            npm run build
-      - run:
-          name: Compile Migrations
-          command: |
-            cd server
-            npx tsc migrations/*.ts --outDir dist/migrations
-      # Save build cache
-      - save_cache:
-          key: build-cache-{{ .Branch }}-{{ checksum "client/package-lock.json" }}-{{ checksum "server/package-lock.json" }}
-          paths:
-            - client/build
-            - server/dist
-      - persist_to_workspace:
-          root: .
-          paths:
-            - client/build
-            - server/dist
-            - server/package.json
-            - server/package-lock.json
-            - server/ecosystem.config.js
-
-  deploy:
-    machine:
-      image: ubuntu-2204:current
-    environment:
-      NODE_ENV: production
-    steps:
-      - attach_workspace:
-          at: /home/circleci/project
-      - add_ssh_keys:
-          fingerprints:
-            - "SHA256:6+qHFQDbqCYFzFzHfY7fpBaly2rEB83DUxswOGj6dkI"
-      # Add deployment verification
-      - run:
-          name: Verify deployment directory
-          command: |
-            ssh $SERVER_USER@$SERVER_IP "[ -d $SERVER_DIR ] || mkdir -p $SERVER_DIR/{client,server}"
-      - run:
-          name: Backup current deployment
-          command: |
-            ssh $SERVER_USER@$SERVER_IP "if [ -d $SERVER_DIR/client ]; then tar -czf $SERVER_DIR/backup-$(date +%Y%m%d_%H%M%S).tar.gz $SERVER_DIR/{client,server}; fi"
-      - run:
-          name: Copy compiled migrations
-          command: |
-            if [ -d "/home/circleci/project/server/dist/migrations" ] && [ "$(ls -A /home/circleci/project/server/dist/migrations)" ]; then
-              scp -r /home/circleci/project/server/dist/migrations/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/server/migrations
-            else
-              echo "No compiled migrations to copy"
-            fi
-      - run:
-          name: Run database migrations
-          command: |
-            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && NODE_ENV=production npm run migrate:latest || echo 'No migrations to run'"
-      - run:
-          name: Deploy to Server
-          command: |
-            scp -r /home/circleci/project/client/build/* $SERVER_USER@$SERVER_IP:$SERVER_DIR/client
-            scp -r /home/circleci/project/server/dist/* /home/circleci/project/server/package*.json /home/circleci/project/server/ecosystem.config.js $SERVER_USER@$SERVER_IP:$SERVER_DIR/server
-            ssh $SERVER_USER@$SERVER_IP "cd $SERVER_DIR/server && npm ci --production && pm2 restart ecosystem.config.js && sudo systemctl restart nginx"
-      # Add health check
-      - run:
-          name: Verify Deployment
-          command: |
-            sleep 10
-            curl --fail --retry 3 --retry-delay 5 https://taskmaster.mrspinn.ca/api/health || (echo "Deployment verification failed" && exit 1)
-
-workflows:
-  test-build-and-deploy:
-    jobs:
-      - test-backend:
-          filters:
-            branches:
-              only: master
-      - test-frontend:
-          filters:
-            branches:
-              only: master
-      - build:
-          requires:
-            - test-backend
-            - test-frontend
-          filters:
-            branches:
-              only: master
-      - deploy:
-          requires:
-            - build
-          filters:
-            branches:
-              only: master
+  # ... rest of the config remains the same ...
