@@ -3,6 +3,7 @@ import * as authController from './controllers/authController';
 import * as categoryController from './controllers/categoryController';
 import * as settingsController from './controllers/settingsController';
 import * as taskController from './controllers/taskController';
+import db from './db';
 import { authenticateToken } from './middleware/authMiddleware';
 
 const router = express.Router();
@@ -29,5 +30,16 @@ router.post("/check-email", authController.checkEmail);
 // Settings Routes
 router.get('/settings', authenticateToken, settingsController.getSettings);
 router.put('/settings', authenticateToken, settingsController.updateSettings);
+
+// Health Check
+router.get('/health', async (req, res) => {
+  try {
+    await db.raw('SELECT 1'); // Quick DB connectivity check
+    res.send('ok');
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(503).send('error');
+  }
+});
 
 export default router;
